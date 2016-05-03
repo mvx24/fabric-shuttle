@@ -5,6 +5,8 @@ setup(
 	version='0.0.1',
 	description='Declarative service-oriented approach with hooks for using Fabric to provision a machine or vagrant box.',
 	url='https://github.com/mvx24/fabric-shuttle',
+	author='mvx24',
+	author_email='cram2400@gmail.com',
 	license='MIT',
 	classifiers=[
 		'Development Status :: 3 - Alpha',
@@ -21,6 +23,6 @@ setup(
 	packages=find_packages(),
 	install_requires=['fabric', 'boto'],
 	package_data={
-		'': ['*.conf', '*.js', '*.ini']
+		'': ['templates/*']
 	}
 )
