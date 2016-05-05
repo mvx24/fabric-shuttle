@@ -27,7 +27,7 @@ class Redis(Service):
 					f.flush()
 					put(f.name, '/etc/redis/fabric.conf', use_sudo=True, mode=0644)
 					sudo('chown root:root /etc/redis/fabric.conf')
-					append('/etc/redis/redis.conf', 'include fabric.conf', use_sudo=True)
+					append('/etc/redis/redis.conf', 'include /etc/redis/fabric.conf', use_sudo=True)
 		self.restart()
 
 	def site_install(self, site):
