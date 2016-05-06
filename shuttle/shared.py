@@ -21,8 +21,8 @@ presets = {
 	'PERMANENT_CACHE': 'max-age=315360000'
 }
 
-DJANGO_PACKAGES = ('python-pip', 'python-dev', 'sqlite3'),
-DJANGO_PIP_PACKAGES = ('django', 'django-storages', 'boto', 'distribute')
+DJANGO_PACKAGES = ('python-pip', 'python-dev', 'sqlite3')
+DJANGO_PIP_PACKAGES = ('virtualenv', 'django', 'django-storages', 'boto')
 
 # fabric.colors doesn't have bold, so just define styles here
 def bold(msg):
