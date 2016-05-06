@@ -7,5 +7,6 @@ from .uwsgi import UWSGI
 from .s3 import S3
 from .geoip import GeoIP
 from .cron import Cron
+from .supervisor import Supervisor
 
-__all__ = ['Memcached', 'MySQL', 'Nginx', 'Postgres', 'Redis', 'UWSGI', 'S3', 'GeoIP', 'Cron']
+__all__ = ['Memcached', 'MySQL', 'Nginx', 'Postgres', 'Redis', 'UWSGI', 'S3', 'GeoIP', 'Cron', 'Supervisor']
