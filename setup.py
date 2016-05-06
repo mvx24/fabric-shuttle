@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
 	name='fabric-shuttle',
-	version='0.0.1',
+	version='0.0.2',
 	description='Declarative service-oriented approach with hooks for using Fabric to provision a machine or vagrant box.',
 	url='https://github.com/mvx24/fabric-shuttle',
 	author='mvx24',
