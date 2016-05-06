@@ -30,7 +30,8 @@ else:
 sys.path.append(os.path.dirname(env['real_fabfile'].rstrip('/')))
 
 # Make sure the current branch is master, otherwise warn the user
-result = local('git status | head -1', capture=True)
+with hide('everything'), settings(warn_only=True):
+	result = local('git status | head -1', capture=True)
 if result.succeeded and result.split()[-1] != 'master':
 	answer = raw_input('Warning: Not on branch master, continue anyways? (n): ')
 	if not 'yes'.startswith(answer.lower()):
@@ -106,7 +107,8 @@ __SSH_CONFIG_MAP = { 'User': 'user', 'Port': 'port', 'HostName': 'hosts', 'Ident
 @task
 def vagrant():
 	""" Use to override the fab environment with information taken from vagrant ssh_config. """
-	result = local('vagrant ssh-config', capture=True)
+	with hide('everything'), settings(warn_only=True):
+		result = local('vagrant ssh-config', capture=True)
 	if result.failed:
 		print red(result)
 		exit(1)
