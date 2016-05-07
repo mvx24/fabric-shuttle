@@ -17,6 +17,16 @@ class own_project(object):
 	def __exit__(self, *_):
 		sudo('chown -R %s:%s /srv/www/%s' % (NGINX_USER, NGINX_USER, env['project']))
 
+def _get_remote_shell():
+	parts = ['ssh', '-p', env.get('port', '22')]
+	if env.get('key_filename'):
+		parts.append('-i')
+		parts.append(os.path.expanduser(env['key_filename']))
+	if env.get('vagrant'):
+		parts.append('-o')
+		parts.append('StrictHostKeyChecking=no')
+	return ' '.join(parts)
+
 def _django_get_excluded(sites):
 	"""Get an excluded list of patterns.
 
@@ -73,7 +83,7 @@ def django_sync(sites):
 		# Sync and set the owner
 		excluded = _django_get_excluded(sites)
 		excluded = ['--exclude="%s"' % ex for ex in excluded]
-		local(SYNC_COMMAND % (' '.join(excluded), ' -e "ssh -i %s"' % os.path.expanduser(env['key_filename']) if env.get('key_filename') else '', env['user'], env['hosts'][0], env['project']))
+		local(SYNC_COMMAND % (' '.join(excluded), ' -e "%s"' % _get_remote_shell(), env['user'], env['hosts'][0], env['project']))
 
 		# Create the media directory
 		# Restore existing media if a subdirectory of the project, if it is outside the project make sure it is owned by nginx
@@ -107,7 +117,7 @@ def django_sync_dry_run(sites):
 	# e.g. To show just migrations: fab e:production x:dryrun | grep -v "^deleting" | grep -v "/$" | grep "^shared/migrations"
 	excluded = _django_get_excluded(sites)
 	excluded = ['--exclude="%s"' % ex for ex in excluded]
-	local(SYNC_COMMAND % (' '.join(excluded), ' --dry-run -e "ssh -i %s"' % os.path.expanduser(env['key_filename']) if env.get('key_filename') else '', env['user'], env['hosts'][0], env['project']))
+	local(SYNC_COMMAND % (' '.join(excluded), ' --dry-run -e "%s"' % _get_remote_shell(), env['user'], env['hosts'][0], env['project']))
 
 def django_sync_down(path=''):
 	"""Syncs down stuff from the server. Wrap in the task decorator to enable. sync_down = task(sync_down)"""
@@ -115,7 +125,7 @@ def django_sync_down(path=''):
 		path = path[1:]
 	if not path.endswith('/'):
 		path += '/'
-	local('rsync -avz --exclude=".*" --exclude="*.pyc" --exclude="*.sh" --exclude="*.db" %s@%s:/srv/www/%s%s ./%s' % (env['user'], env['hosts'][0], env['project'], path, path))
+	local('rsync -avz --exclude=".*" --exclude="*.pyc" --exclude="*.sh" --exclude="*.db" -e "%s" %s@%s:/srv/www/%s%s ./%s' % (_get_remote_shell(), env['user'], env['hosts'][0], env['project'], path, path))
 
 def deploy_webapp():
 	"""Deploy a webapp to S3 with the prefix of WEBAPP_URL. If site is not specified, then the command will be run on all sites."""

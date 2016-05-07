@@ -107,6 +107,7 @@ __SSH_CONFIG_MAP = { 'User': 'user', 'Port': 'port', 'HostName': 'hosts', 'Ident
 @task
 def vagrant():
 	""" Use to override the fab environment with information taken from vagrant ssh_config. """
+	env['vagrant'] = True
 	with hide('everything'), settings(warn_only=True):
 		result = local('vagrant ssh-config', capture=True)
 	if result.failed:

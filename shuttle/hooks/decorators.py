@@ -34,7 +34,7 @@ class hook(object):
 		if not _quiet_hooks:
 			print green('%s>Start %s' % ('-' * _hook_depth, self.hook_name))
 		if _before_hooks.has_key(self.hook_name):
-			for func in _before_hooks[hook_name]:
+			for func in _before_hooks[self.hook_name]:
 				if func.__doc__:
 					print bold(func.__doc__)
 				func(*self.args, **self.kwargs)
@@ -43,7 +43,7 @@ class hook(object):
 		global _hook_depth
 		_hook_depth -= 1
 		if _after_hooks.has_key(self.hook_name):
-			for func in _after_hooks[hook_name]:
+			for func in _after_hooks[self.hook_name]:
 				if func.__doc__:
 					print bold(func.__doc__)
 				func(*self.args, **self.kwargs)

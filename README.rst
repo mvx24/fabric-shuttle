@@ -15,6 +15,7 @@ Supported Services
 * postgresql
 * redis
 * s3
+* supervisor
 * uwsgi
 
 Extras
