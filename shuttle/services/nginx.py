@@ -57,7 +57,7 @@ class Nginx(Service):
 						else:
 							f.write('%s %s;\n' % (section, str(self.settings[section])))
 					f.flush()
-					put(f.name, '/etc/nginx/conf.d/fabric.conf', use_sudo=True, mode=0644)		
+					put(f.name, '/etc/nginx/conf.d/fabric.conf', use_sudo=True, mode=0644)
 					sudo('chown root:root /etc/nginx/conf.d/fabric.conf')
 		self.restart()
 
@@ -82,12 +82,12 @@ class Nginx(Service):
 				context['location_settings_str'] = '\n\t\t'.join(['%s %s;' % setting for setting in self.settings['location_settings']])
 			else:
 				context['location_settings_str'] = ''
-			
+
 			try:
 				module = import_module(site.get('settings_module'))
 			except:
 				module = None
-			
+
 			if module:
 				# Django site setup
 				context['location_settings_str'] = '\n\t\t'.join((context['location_settings_str'], 'uwsgi_pass unix:///var/run/uwsgi/app/%s/socket;' % site['name'], 'include uwsgi_params;'))
@@ -147,4 +147,7 @@ class Nginx(Service):
 			if site['type'] == SiteType.NGINX:
 				with hide('warnings'), settings(warn_only=True):
 					sudo('ln -s /etc/nginx/sites-available/%s.conf /etc/nginx/sites-enabled/%s.conf' % (site['name'], site['name']))
+			# If the site is the default, then remove the default that comes with nginx
+			if self.settings.get('default'):
+				sudo('rm -f /etc/nginx/sites-enabled/default')
 		self.restart()
