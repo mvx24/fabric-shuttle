@@ -24,7 +24,6 @@ class Supervisor(Service):
 			put('%s/supervisor-upstart.conf' % get_template_dir(), '/etc/init/supervisor.conf', use_sudo=True, mode=0644)
 			# Start the default configuration, with logging and pid file location changed to be more like nginx and other services
 			sudo('mkdir -p /etc/supervisor')
-			sudo('mkdir -p /var/run/supervisor')
 			sudo('mkdir -p /var/log/supervisor')
 			sudo('echo_supervisord_conf > ' + _CONFIG_FILE)
 			sed(_CONFIG_FILE, '/tmp/supervisord.log', '/var/log/supervisor/supervisor.log', use_sudo=True)
