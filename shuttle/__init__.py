@@ -156,8 +156,8 @@ def deploy():
 								sudo('python manage.py test %s --settings %s ' % (' '.join(site['remote_tests']), site['settings_module']))
 						# Enable the site for nginx and uwsgi
 						with hide('warnings'), settings(warn_only=True):
-							sudo('ln -s /etc/nginx/sites-available/%s.conf /etc/nginx/sites-enabled/%s.conf' % (site['name'], site['name']))
-							sudo('ln -s /etc/uwsgi/apps-available/%s.ini /etc/uwsgi/apps-enabled/%s.ini' % (site['name'], site['name']))
+							sudo('ln -sf /etc/nginx/sites-available/%s.conf /etc/nginx/sites-enabled/%s.conf' % (site['name'], site['name']))
+							sudo('ln -sf /etc/uwsgi/apps-available/%s.ini /etc/uwsgi/apps-enabled/%s.ini' % (site['name'], site['name']))
 			uwsgi.start()
 			nginx.start()
 

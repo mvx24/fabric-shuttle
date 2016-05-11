@@ -146,7 +146,7 @@ class Nginx(Service):
 			# If site type is NGINX enable it right away because there is no deployment process for it
 			if site['type'] == SiteType.NGINX:
 				with hide('warnings'), settings(warn_only=True):
-					sudo('ln -s /etc/nginx/sites-available/%s.conf /etc/nginx/sites-enabled/%s.conf' % (site['name'], site['name']))
+					sudo('ln -sf /etc/nginx/sites-available/%s.conf /etc/nginx/sites-enabled/%s.conf' % (site['name'], site['name']))
 			# If the site is the default, then remove the default that comes with nginx
 			if self.settings.get('default'):
 				sudo('rm -f /etc/nginx/sites-enabled/default')

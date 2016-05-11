@@ -15,14 +15,14 @@ def install_img_libs():
 def setup_libjpeg():
 	with settings(warn_only=True):
 		if exists('/usr/lib/x86_64-linux-gnu/libjpeg.so'):
-			sudo('ln -s /usr/lib/x86_64-linux-gnu/libjpeg.so /usr/lib/libjpeg.so')
+			sudo('ln -sf /usr/lib/x86_64-linux-gnu/libjpeg.so /usr/lib/libjpeg.so')
 		if exists('/usr/lib/x86_64-linux-gnu/libz.so'):
-			sudo('ln -s /usr/lib/x86_64-linux-gnu/libz.so /usr/lib/libz.so')
+			sudo('ln -sf /usr/lib/x86_64-linux-gnu/libz.so /usr/lib/libz.so')
 
 @after('apt-get install libfreetype6-dev')
 def setup_libfreetype6():
 	with settings(warn_only=True):
 		if exists('/usr/lib/x86_64-linux-gnu/libfreetype.so'):
-			sudo('ln -s /usr/lib/x86_64-linux-gnu/libfreetype.so /usr/lib/libfreetype.so')
+			sudo('ln -sf /usr/lib/x86_64-linux-gnu/libfreetype.so /usr/lib/libfreetype.so')
 		if exists('/usr/lib/x86_64-linux-gnu/libz.so'):
-			sudo('ln -s /usr/lib/x86_64-linux-gnu/libz.so /usr/lib/libz.so')
+			sudo('ln -sf /usr/lib/x86_64-linux-gnu/libz.so /usr/lib/libz.so')
