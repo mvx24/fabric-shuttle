@@ -108,18 +108,19 @@ __SSH_CONFIG_MAP = { 'User': 'user', 'Port': 'port', 'HostName': 'hosts', 'Ident
 def vagrant():
 	""" Use to override the fab environment with information taken from vagrant ssh_config. """
 	env['vagrant'] = True
-	with hide('everything'), settings(warn_only=True):
-		result = local('vagrant ssh-config', capture=True)
-	if result.failed:
-		print red(result)
-		exit(1)
-	results = result.splitlines()
-	for line in results:
-		key, value = line.strip().split()
-		if key in __SSH_CONFIG_MAP:
-			env[__SSH_CONFIG_MAP[key]] = value.strip('"')
-	if type(env['hosts']) is str:
-		env['hosts'] = [env['hosts']]
+	with hook('vagrant'):
+		with hide('everything'), settings(warn_only=True):
+			result = local('vagrant ssh-config', capture=True)
+		if result.failed:
+			print red(result)
+			exit(1)
+		results = result.splitlines()
+		for line in results:
+			key, value = line.strip().split()
+			if key in __SSH_CONFIG_MAP:
+				env[__SSH_CONFIG_MAP[key]] = value.strip('"')
+		if type(env['hosts']) is str:
+			env['hosts'] = [env['hosts']]
 
 @task
 def deploy():
