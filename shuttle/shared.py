@@ -111,6 +111,12 @@ def apt_get_update():
 _pip_install_set = set()
 
 def pip_install(*packages):
+	# Check for pip first
+	with hide('everything'), settings(warn_only=True):
+		result = run('dpkg -s python-pip')
+	if not result.succeeded:
+		apt_get_install('python-pip')
+	# Install each listed package
 	for package in packages:
 		if package in _pip_install_set:
 			continue
