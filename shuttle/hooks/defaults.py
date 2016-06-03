@@ -4,6 +4,10 @@ from fabric.contrib.files import exists
 from .decorators import before, after
 from ..shared import apt_get_install
 
+@before('pip install paramiko')
+def install_paramiko_libs():
+	apt_get_install('build-essential', 'libssl-dev', 'libffi-dev')
+
 @before('pip install pil')
 def install_img_libs():
 	apt_get_install('libjpeg-dev', 'libpng-dev', 'libfreetype6-dev')
