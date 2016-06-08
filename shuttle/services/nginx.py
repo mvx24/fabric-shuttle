@@ -91,7 +91,7 @@ class Nginx(Service):
 			if module:
 				# Django site setup
 				context['location_settings_str'] = '\n\t\t'.join((context['location_settings_str'], 'uwsgi_pass unix:///var/run/uwsgi/app/%s/socket;' % site['name'], 'include uwsgi_params;'))
-				if module.ALLOWED_HOSTS:
+				if hasattr(module, 'ALLOWED_HOSTS'):
 					context['allowed_hosts'] = ' '.join(module.ALLOWED_HOSTS)
 				else:
 					context['allowed_hosts'] = site['name']
