@@ -29,14 +29,6 @@ else:
 # Will work for both a fabfile directory or file
 sys.path.append(os.path.dirname(env['real_fabfile'].rstrip('/')))
 
-# Make sure the current branch is master, otherwise warn the user
-with hide('everything'), settings(warn_only=True):
-	result = local('git status | head -1', capture=True)
-if result.succeeded and result.split()[-1] != 'master':
-	answer = raw_input('Warning: Not on branch master, continue anyways? (n): ')
-	if not 'yes'.startswith(answer.lower()):
-		exit(0)
-
 class CompactStdout(object):
 	def __init__(self):
 		self.prefix = None
@@ -77,6 +69,22 @@ class CompactStdout(object):
 
 sys.stdout = CompactStdout()
 env.colorize_errors = True
+env.check_production_requirements = True
+
+def check_production_requirements():
+	if env.check_production_requirements:
+		# Make sure the current branch is master, otherwise warn the user
+		with hide('everything'), settings(warn_only=True):
+			result = local('git status | head -1', capture=True)
+		if result.succeeded and result.split()[-1] != 'master':
+			answer = raw_input('Warning: Not on branch master, continue anyways? (n): ')
+			if not 'yes'.startswith(answer.lower()):
+				exit(0)
+
+@task
+def f():
+	""" Force the operation by ignoring any requirements and restrictions. """
+	env.check_production_requirements = False
 
 @task
 def e(name):
@@ -107,6 +115,7 @@ __SSH_CONFIG_MAP = { 'User': 'user', 'Port': 'port', 'HostName': 'hosts', 'Ident
 @task
 def vagrant():
 	""" Use to override the fab environment with information taken from vagrant ssh_config. """
+	f()
 	env['vagrant'] = True
 	with hook('vagrant'):
 		with hide('everything'), settings(warn_only=True):
@@ -125,6 +134,7 @@ def vagrant():
 @task
 def deploy():
 	""" Deploy the project to the server using rsync, if site is specified, then will deploy a webapp. """
+	check_production_requirements()
 	site = env.get('site')
 	with hook('deploy'):
 		# Handle webapp deployments
@@ -176,16 +186,12 @@ def manage(*args):
 				with cd('/srv/www/%s' % env['project']):
 					sudo('python manage.py %s --settings %s' % (' '.join(args), site['settings_module']), user=NGINX_USER)
 
-@task
-def watch():
-	""" Watch the code for changes and invoke rsync. """
-	pass
-
 # Service tasks
 
 @task
 def setup(*service_names):
 	""" Setup a server from scratch by installing and configuring services for the server and the sites. """
+	check_production_requirements()
 	install(*service_names)
 	config(*service_names)
 	siteinstall(*service_names)
@@ -204,6 +210,7 @@ def install(*service_names):
 @task
 def config(*service_names):
 	""" Configure services on the server. """
+	check_production_requirements()
 	for service in env['services']:
 		if not service_names or service.name in service_names:
 			service.config()
@@ -235,6 +242,7 @@ def siteinstall(*service_names):
 @task
 def siteconfig(*service_names):
 	""" Configure the services for one or all sites. """
+	check_production_requirements()
 	site = env.get('site')
 	sites = env['sites'].values() if site is None else [site]
 	for s in sites:
