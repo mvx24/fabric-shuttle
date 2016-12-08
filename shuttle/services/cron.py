@@ -4,6 +4,7 @@ from fabric.contrib.files import append
 from .nginx import NGINX_USER
 from .service import Service
 from ..hooks import hook
+from ..shared import get_python_interpreter, get_project_directory
 
 class Cron(Service):
 	name = 'cron'
@@ -30,7 +31,7 @@ class Cron(Service):
 				lines.append(start)
 				for job in self.settings['crontab']:
 					if isinstance(job, (str, unicode)):
-						lines.append('0 0 * * * cd %s && python manage.py %s --settings %s >/dev/null 2>&1' % ('/srv/www/%s' % env['project'], job, site['settings_module']))
+						lines.append('0 0 * * * cd %s && %s manage.py %s --settings %s >/dev/null 2>&1' % (get_project_directory(), get_python_interpreter(), job, site['settings_module']))
 					else:
 						lines.append(' '.join())
 				lines.append(end)

@@ -32,4 +32,4 @@ class Redis(Service):
 
 	def site_install(self, site):
 		with hook('site install %s' % self.name, self, site):
-			pip_install('redis', 'django-redis')
+			pip_install(site, 'redis', 'django-redis')

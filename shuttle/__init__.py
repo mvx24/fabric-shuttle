@@ -12,6 +12,7 @@ import x, services
 
 __all__ = ['services', 'environments', 'set_environment', 'set_default_environment', 'SiteType', 'presets', 'e', 's', 'vagrant', 'deploy', 'manage', 'setup', 'install', 'config', 'siteinstall', 'siteconfig', 'restart', 'stop', 'start', 'x']
 
+# TODO: move this to S3 usage only and use in a with statement
 # Python 2.7.9 enables strict SSL cert checking, so S3 buckets with dots will no longer work
 # ssl.CertificateError: hostname 'my.bucket.name.s3.amazonaws.com' doesn't match either of '*.s3.amazonaws.com', 's3.amazonaws.com'
 # https://www.python.org/dev/peps/pep-0476/
@@ -45,8 +46,11 @@ class CompactStdout(object):
 		if not s:
 			self.prefix = None
 			return
+		if s.find('InsecureRequestWarning') != -1 or s.find('InsecurePlatformWarning') != -1 or s.find('SNIMissingWarning') != -1:
+			self.prefix = None
+			return
 		if self.prefix:
-			contains_percent = (re.search("^\d*%", s) or re.search("\d*%$", s))
+			contains_percent = (re.search("^\s*\d*%", s) or re.search("\d*%$", s) or s in ('/', '|', '\\', '-'))
 			if self.in_percent:
 				if contains_percent:
 					sys.__stdout__.write('\r')
@@ -144,6 +148,7 @@ def deploy():
 		sites = [site for site in sites if site['type'] == SiteType.DJANGO]
 		if sites:
 			for site in sites:
+				# TODO: support local virtualenv for testing
 				if site.has_key('local_tests') and site['local_tests']:
 					local('python manage.py test %s --settings %s' % (' '.join(site['local_tests']), site['settings_module']))
 			uwsgi = find_service('uwsgi')
@@ -152,19 +157,20 @@ def deploy():
 			nginx.stop()
 			django_sync(sites)
 			with own_project():
-				with cd('/srv/www/%s' % env['project']):
+				with cd(get_project_directory()):
 					for site in sites:
+						python = get_python_interpreter(site)
 						# Only syncdb for versions below 1.7
 						#sudo('python manage.py syncdb --settings %s --noinput' % site['settings_module'])
-						sudo('python manage.py migrate --settings %s --noinput' % site['settings_module'])
+						sudo('%s manage.py migrate --settings %s --noinput' % (python, site['settings_module']))
 						with settings(warn_only=True):
 							# The collectstatic with --clear with raise an exception and fail if the static directory does not already exist, so retry without --clear if it fails
-							result = sudo('python manage.py collectstatic --settings %s --noinput --clear' % site['settings_module'])
+							result = sudo('%s manage.py collectstatic --settings %s --noinput --clear' % (python, site['settings_module']))
 							if result.failed:
-								sudo('python manage.py collectstatic --settings %s --noinput' % site['settings_module'])
+								sudo('%s manage.py collectstatic --settings %s --noinput' % (python, site['settings_module']))
 						if site.has_key('remote_tests') and site['remote_tests']:
 							with settings(warn_only=True):
-								sudo('python manage.py test %s --settings %s ' % (' '.join(site['remote_tests']), site['settings_module']))
+								sudo('%s manage.py test %s --settings %s ' % (python, ' '.join(site['remote_tests']), site['settings_module']))
 						# Enable the site for nginx and uwsgi
 						with hide('warnings'), settings(warn_only=True):
 							sudo('ln -sf /etc/nginx/sites-available/%s.conf /etc/nginx/sites-enabled/%s.conf' % (site['name'], site['name']))
@@ -176,15 +182,17 @@ def deploy():
 def manage(*args):
 	""" Run a management command using the supplied arguments. If site is not specified command will be run on all sites. """
 	site = env.get('site')
+	python = get_python_interpreter(site)
+	project_dir = get_project_directory()
 	with hook('manage %s' % args[0], args[1:]):
 		from services.nginx import NGINX_USER
 		if site is not None:
-			with cd('/srv/www/%s' % env['project']):
-				sudo('python manage.py %s --settings %s' % (' '.join(args), site['settings_module']), user=NGINX_USER)
+			with cd(project_dir):
+				sudo('%s manage.py %s --settings %s' % (python, ' '.join(args), site['settings_module']), user=NGINX_USER)
 		else:
 			for site in env['sites'].values():
-				with cd('/srv/www/%s' % env['project']):
-					sudo('python manage.py %s --settings %s' % (' '.join(args), site['settings_module']), user=NGINX_USER)
+				with cd(project_dir):
+					sudo('%s manage.py %s --settings %s' % (python, ' '.join(args), site['settings_module']), user=NGINX_USER)
 
 # Service tasks
 
@@ -224,17 +232,14 @@ def siteinstall(*service_names):
 	site_types = set([s['type'] for s in sites])
 	for t in site_types:
 		if t == SiteType.DJANGO:
-			apt_get_update()
-			apt_get_install(*DJANGO_PACKAGES)
-			pip_update()
-			pip_install(*DJANGO_PIP_PACKAGES)
+			apt_get_install('python-pip', 'python-dev', 'sqlite3')
+			pip_install(None, 'virtualenv')
 	# Install packages and each service for each site
 	for s in sites:
 		print teal(s['name'])
 		if s.get('packages'):
 			apt_get_install(*s['packages'])
-		if s.get('pip_packages'):
-			pip_install(*s['pip_packages'])
+		pip_install(s)
 		for service in s.get('services', []):
 			if not service_names or service.name in service_names:
 				service.site_install(s)

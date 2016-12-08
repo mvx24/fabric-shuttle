@@ -21,9 +21,6 @@ presets = {
 	'PERMANENT_CACHE': 'max-age=315360000'
 }
 
-DJANGO_PACKAGES = ('python-pip', 'python-dev', 'sqlite3')
-DJANGO_PIP_PACKAGES = ('virtualenv', 'django', 'django-storages', 'boto')
-
 # fabric.colors doesn't have bold, so just define styles here
 def bold(msg):
 	return '\033[1m%s\033[0m' % msg
@@ -40,14 +37,17 @@ def blue(msg):
 def teal(msg):
 	return '\033[1;36m%s\033[0m' % msg
 
-def get_template_dir():
+def get_template_directory():
 	return '%s/templates' % os.path.dirname(__file__)
+
+def get_template(name):
+	return os.path.join(get_template_directory(), name)
 
 def fix_static_path(path, site):
 	"""Changes a relative path (os.path.abspath('.')) that may have been specified in the settings."""
 	if path.startswith(os.path.abspath('.')):
 		if site.get('static_inside_project', False):
-			return path.replace(os.path.abspath('.'), '/srv/www/%s' % env['project'], 1)
+			return path.replace(os.path.abspath('.'), get_project_directory(), 1)
 		else:
 			return path.replace(os.path.abspath('.'), '/srv/www', 1)
 	return path
@@ -55,7 +55,7 @@ def fix_static_path(path, site):
 def fix_webapp_path(path):
 	"""Like fix_static_path, but webapps should always stay inside the project."""
 	if path.startswith(os.path.abspath('.')):
-		return path.replace(os.path.abspath('.'), '/srv/www/%s' % env['project'], 1)
+		return path.replace(os.path.abspath('.'), get_project_directory(), 1)
 	return path
 
 def get_webapp_taskrunner(webapp_root):
@@ -108,33 +108,81 @@ def apt_get_install(*packages):
 def apt_get_update():
 	sudo('apt-get update -y')
 
+def apt_get_upgrade_packages():
+	sudo('apt-get upgrade -y')
+
+def get_project_directory():
+	return os.path.join('/srv/www/apps', env['project'])
+
+def get_requirements_packages():
+	try:
+		with open('requirements.txt') as f:
+			return tuple(map(lambda package: package.strip(), f.readlines()))
+	except:
+		return tuple()
+
+def get_virtual_env(site=None):
+	# If virtualenv is available, then setup and use it
+	with hide('everything'), settings(warn_only=True):
+		if site and run('which virtualenv').succeeded:
+			virtual_env = os.path.join('/srv/www/env', site['name'])
+			if not exists(virtual_env):
+				sudo('virtualenv ' + virtual_env)
+			return virtual_env
+
+def get_python_interpreter(site=None):
+	virtual_env = get_virtual_env(site)
+	if virtual_env:
+		return os.path.join(virtual_env, 'bin/python')
+	else:
+		return 'python'
+
+def get_pip_installer(site=None):
+	virtual_env = get_virtual_env(site)
+	if virtual_env:
+		return os.path.join(virtual_env, 'bin/pip')
+	else:
+		with hide('everything'), settings(warn_only=True):
+			if run('which pip', True).succeeded:
+				return 'pip'
+			else:
+				return 'easy_install'
+
 _pip_install_set = set()
 
-def pip_install(*packages):
+def pip_install(site=None, *packages):
+	# TODO: support upgrading packages with pip install --upgrade packagename
 	# Check for pip first
 	with hide('everything'), settings(warn_only=True):
 		result = run('dpkg -s python-pip')
 	if not result.succeeded:
 		apt_get_install('python-pip')
+	if site and len(packages) == 0:
+		packages = tuple(site.get('pip_packages', [])) + get_requirements_packages()
+	pip = get_pip_installer(site)
 	# Install each listed package
 	for package in packages:
-		if package in _pip_install_set:
-			continue
-		_pip_install_set.add(package)
+		if site is None:
+			if package in _pip_install_set:
+				continue
+			_pip_install_set.add(package)
 		if package.startswith('git:') or package.startswith('git+'):
 			apt_get_install('git')
 		with hide('everything'), settings(warn_only=True):
-			result = run('pip show %s' % package)
+			result = run('%s show %s' % (pip, package))
 		# Check the output of pip show, it doesn't return non-zero on not finding the package, just no output
 		if not len(result.strip()):
-			# TODO: separate the version from the package
+			# TODO: separate the version from the package for the hook
 			from hooks import hook
 			with hook('pip install %s' % package):
-				sudo('pip install %s' % package)
+				# sudo with -H for setting the home directory for root so pip has proper permissions to cache
+				run('sudo -H %s install "%s"' % (pip, package))
 		else:
 			print '%s already installed.' % package
 
 def pip_update():
+	# WARNING: Upgrading pip to the latest version will cause urllib3 warnings and errors to start occuring on Ubuntu 14
+	# virtualenv uses the latest versions and will cause these warnings, but they are consumed in CompactStdout
 	sudo('pip install --upgrade pip')
 	sudo('pip install --upgrade distribute')
 

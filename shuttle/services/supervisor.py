@@ -6,7 +6,7 @@ from fabric.contrib.files import append, sed
 from .service import Service
 from ..formats import format_ini
 from ..hooks import hook
-from ..shared import pip_install, get_template_dir
+from ..shared import pip_install, get_template
 
 _CONFIG_FILE = '/etc/supervisor/supervisor.conf'
 
@@ -18,10 +18,10 @@ class Supervisor(Service):
 
 	def install(self):
 		with hook('install %s' % self.name, self):
-			pip_install(self.name)
+			pip_install(None, self.name)
 			# To run automatically at startup with ubuntu and other systems:
 			# http://serverfault.com/questions/96499/how-to-automatically-start-supervisord-on-linux-ubuntu
-			put('%s/supervisor-upstart.conf' % get_template_dir(), '/etc/init/supervisor.conf', use_sudo=True, mode=0644)
+			put(get_template('supervisor-upstart.conf'), '/etc/init/supervisor.conf', use_sudo=True, mode=0644)
 			# Start the default configuration, with logging and pid file location changed to be more like nginx and other services
 			sudo('mkdir -p /etc/supervisor')
 			sudo('mkdir -p /var/log/supervisor')

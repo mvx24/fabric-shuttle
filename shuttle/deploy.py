@@ -13,9 +13,9 @@ class own_project(object):
 	def __init__(self):
 		pass
 	def __enter__(self):
-		sudo('chown -R %s:%s /srv/www/%s' % (env['user'], env['user'], env['project']))
+		sudo('chown -R %s:%s %s' % (env['user'], env['user'], get_project_directory()))
 	def __exit__(self, *_):
-		sudo('chown -R %s:%s /srv/www/%s' % (NGINX_USER, NGINX_USER, env['project']))
+		sudo('chown -R %s:%s %s' % (NGINX_USER, NGINX_USER, get_project_directory()))
 
 def _get_remote_shell():
 	parts = ['ssh', '-p', env.get('port', '22')]
@@ -67,23 +67,26 @@ def _django_get_excluded(sites):
 				print red('Warning: Could not import webapp settings for %s when syncing.' % site['name'])
 	return excluded
 
-SYNC_COMMAND = 'rsync -avz %s --delete --delete-excluded%s ./ %s@%s:/srv/www/%s'
+SYNC_COMMAND = 'rsync -avz %s --delete --delete-excluded%s ./ %s@%s:%s'
 
 def django_sync(sites):
 	"""Syncs the local code to the server. Used as part of the deploy process. Wrap in the task decorator to enable. sync = task(sync)"""
-	sudo('mkdir -p /srv/www/%s' % env['project'])
+	project_dir = project_subpath = get_project_directory()
+	if not project_subpath.endswith('/'):
+		project_subpath += '/'
+	sudo('mkdir -p %s' % project_dir)
 	with own_project():
 		# Preserve existing media if a subdirectory of the project
 		for site in sites:
 			module = import_module(site['settings_module'])
 			MEDIA_ROOT = fix_static_path(module.MEDIA_ROOT, site)
-			if MEDIA_ROOT.startswith('/srv/www/%s/' % env['project']) and exists(MEDIA_ROOT):
-				sudo('mv %s /srv/www/%smedia' % (MEDIA_ROOT, env['project']))
+			if MEDIA_ROOT.startswith(project_subpath) and exists(MEDIA_ROOT):
+				sudo('mv %s /tmp/%smedia' % (MEDIA_ROOT, env['project']))
 
 		# Sync and set the owner
 		excluded = _django_get_excluded(sites)
 		excluded = ['--exclude="%s"' % ex for ex in excluded]
-		local(SYNC_COMMAND % (' '.join(excluded), ' -e "%s"' % _get_remote_shell(), env['user'], env['hosts'][0], env['project']))
+		local(SYNC_COMMAND % (' '.join(excluded), ' -e "%s"' % _get_remote_shell(), env['user'], env['hosts'][0], project_dir))
 
 		# Create the media directory
 		# Restore existing media if a subdirectory of the project, if it is outside the project make sure it is owned by nginx
@@ -91,11 +94,11 @@ def django_sync(sites):
 			module = import_module(site['settings_module'])
 			MEDIA_ROOT = fix_static_path(module.MEDIA_ROOT, site)
 			sudo('mkdir -p %s' % MEDIA_ROOT)
-			if MEDIA_ROOT.startswith('/srv/www/%s/' % env['project']):
-				if exists('/srv/www/%smedia' % env['project']):
+			if MEDIA_ROOT.startswith(project_subpath):
+				if exists('/tmp/%smedia' % env['project']):
 					# Delete the media directory but leave intermediate directories then restore with a move
 					sudo('rm -rf %s' % MEDIA_ROOT)
-					sudo('mv /srv/www/%smedia %s' % (env['project'], MEDIA_ROOT))
+					sudo('mv /tmp/%smedia %s' % (env['project'], MEDIA_ROOT))
 			else:
 				sudo('chown -R %s:%s %s' % (NGINX_USER, NGINX_USER, MEDIA_ROOT))
 
@@ -117,7 +120,7 @@ def django_sync_dry_run(sites):
 	# e.g. To show just migrations: fab e:production x:dryrun | grep -v "^deleting" | grep -v "/$" | grep "^shared/migrations"
 	excluded = _django_get_excluded(sites)
 	excluded = ['--exclude="%s"' % ex for ex in excluded]
-	local(SYNC_COMMAND % (' '.join(excluded), ' --dry-run -e "%s"' % _get_remote_shell(), env['user'], env['hosts'][0], env['project']))
+	local(SYNC_COMMAND % (' '.join(excluded), ' --dry-run -e "%s"' % _get_remote_shell(), env['user'], env['hosts'][0], get_project_directory()))
 
 def django_sync_down(path=''):
 	"""Syncs down stuff from the server. Wrap in the task decorator to enable. sync_down = task(sync_down)"""
@@ -125,7 +128,8 @@ def django_sync_down(path=''):
 		path = path[1:]
 	if not path.endswith('/'):
 		path += '/'
-	local('rsync -avz --exclude=".*" --exclude="*.pyc" --exclude="*.sh" --exclude="*.db" -e "%s" %s@%s:/srv/www/%s%s ./%s' % (_get_remote_shell(), env['user'], env['hosts'][0], env['project'], path, path))
+	remote_path = os.path.join(get_project_directory(), path)
+	local('rsync -avz --exclude=".*" --exclude="*.pyc" --exclude="*.sh" --exclude="*.db" -e "%s" %s@%s:%s ./%s' % (_get_remote_shell(), env['user'], env['hosts'][0], remote_path, path))
 
 def deploy_webapp():
 	"""Deploy a webapp to S3 with the prefix of WEBAPP_URL. If site is not specified, then the command will be run on all sites."""

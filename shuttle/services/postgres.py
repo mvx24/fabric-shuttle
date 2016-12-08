@@ -84,7 +84,7 @@ class Postgres(Service):
 					self.install_postgis()
 			# Install python postgresql support
 			apt_get_install('python-dev', 'postgresql-server-dev-all', 'postgresql-client')
-			pip_install('psycopg2')
+			pip_install(site, 'psycopg2')
 
 	def site_config(self, site):
 		answer = raw_input('Running this postgres site configuration will drop any existing database. Are you sure? (Y/N): ')

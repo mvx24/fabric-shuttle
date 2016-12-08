@@ -31,4 +31,4 @@ class Memcached(Service):
 
 	def site_install(self, site):
 		with hook('site install %s' % self.name, self, site):
-			pip_install('python-memcached')
+			pip_install(site, 'python-memcached')

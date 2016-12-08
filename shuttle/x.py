@@ -202,10 +202,7 @@ _PYCRYPTO_INSTRUCTIONS = """1. Download pycrypto from: https://www.dlitz.net/sof
 def local_setup():
 	"""Installs packages necessary for a local mac setup."""
 	with settings(warn_only=True):
-		if env.has_key('pip_packages'):
-			packages = tuple(env['pip_packages']) + DJANGO_PIP_PACKAGES
-		else:
-			packages = DJANGO_PIP_PACKAGES
+		packages = tuple(env.get('pip_packages', [])) + get_requirements_packages()
 		# Check to make sure mysql client libraries are installed
 		if 'mysql-python' in packages:
 			result = local('which mysql_config', True)
@@ -243,12 +240,22 @@ def local_setup():
 		while not i: i = raw_input().lower()
 		if i[0] != 'y':
 			return
-		result = local('which pip', True)
-		if result.succeeded:
+		# Activate the virtualenv if setup
+		pip = os.path.join(os.path.abspath('.'), 'env/bin/pip')
+		if not os.path.isfile(pip):
+			pip = None
+			print 'Could not detect a virtualenv:'
+			print 'Continue? y/n:'
+			i = None
+			while not i: i = raw_input().lower()
+			if i[0] != 'y':
+				return
+		if pip or local('which pip', True).succeeded:
+			pip = pip or 'pip'
 			for package in packages:
-				local('sudo pip install %s' % package)
+				local('sudo %s install %s' % (pip, package))
 				if package == 'distribute':
-					local('sudo pip install --upgrade distribute')
+					local('sudo %s install --upgrade distribute' % pip)
 		else:
 			for package in packages:
 				if package.startswith('git+git'):

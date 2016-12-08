@@ -7,7 +7,7 @@ from fabric.api import put, sudo, hide, settings
 from fabric.contrib.files import upload_template
 
 from .service import Service
-from ..shared import apt_get_install, get_template_dir, fix_static_path, fix_webapp_path, SiteType
+from ..shared import apt_get_install, get_template, fix_static_path, fix_webapp_path, SiteType
 from ..hooks import hook
 
 NGINX_USER = 'www-data'
@@ -138,9 +138,9 @@ class Nginx(Service):
 				context['static_locations'] = ''
 
 			if self.settings.get('ssl_only'):
-				nginx_template = '%s/nginx-site-https.conf' % get_template_dir()
+				nginx_template = get_template('nginx-site-https.conf')
 			else:
-				nginx_template = '%s/nginx-site.conf' % get_template_dir()
+				nginx_template = get_template('nginx-site.conf')
 			upload_template(nginx_template, '/etc/nginx/sites-available/%s.conf' % site['name'], context=context, use_sudo=True, mode=0644)
 			sudo('chown root:root /etc/nginx/sites-available/%s.conf' % site['name'])
 			# If site type is NGINX enable it right away because there is no deployment process for it
