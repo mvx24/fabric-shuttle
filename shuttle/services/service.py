@@ -4,8 +4,8 @@ from ..hooks import hook
 
 class Service(object):
 
-	def __init__(self, settings=None):
-		self.settings = {} if settings is None else settings
+	def __init__(self, **kwargs):
+		self.settings = {} if not kwargs else kwargs
 
 	def install(self):
 		pass
