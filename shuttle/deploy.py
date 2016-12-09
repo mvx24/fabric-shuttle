@@ -24,6 +24,8 @@ def _get_remote_shell():
 		parts.append(os.path.expanduser(env['key_filename']))
 	if env.get('vagrant'):
 		parts.append('-o')
+		parts.append('UserKnownHostsFile=/dev/null')
+		parts.append('-o')
 		parts.append('StrictHostKeyChecking=no')
 	return ' '.join(parts)
 
