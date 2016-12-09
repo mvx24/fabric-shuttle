@@ -50,10 +50,10 @@ class CompactStdout(object):
 			self.prefix = None
 			return
 		if self.prefix:
-			contains_percent = (re.search("^\s*\d*%", s) or re.search("\d*%$", s) or s in ('/', '|', '\\', '-'))
+			contains_percent = (re.search("\s*\d+%\s*", s) or re.search("[/|\\-]$", s))
 			if self.in_percent:
 				if contains_percent:
-					sys.__stdout__.write('\r')
+					sys.__stdout__.write('\r\x1b[K')
 				else:
 					sys.__stdout__.write('\n')
 			sys.__stdout__.write(blue(self.prefix))
@@ -182,15 +182,16 @@ def deploy():
 def manage(*args):
 	""" Run a management command using the supplied arguments. If site is not specified command will be run on all sites. """
 	site = env.get('site')
-	python = get_python_interpreter(site)
 	project_dir = get_project_directory()
 	with hook('manage %s' % args[0], args[1:]):
 		from services.nginx import NGINX_USER
 		if site is not None:
+			python = get_python_interpreter(site)
 			with cd(project_dir):
 				sudo('%s manage.py %s --settings %s' % (python, ' '.join(args), site['settings_module']), user=NGINX_USER)
 		else:
 			for site in env['sites'].values():
+				python = get_python_interpreter(site)
 				with cd(project_dir):
 					sudo('%s manage.py %s --settings %s' % (python, ' '.join(args), site['settings_module']), user=NGINX_USER)
 
