@@ -1,4 +1,3 @@
-from importlib import import_module
 import os
 import tempfile
 import urlparse
@@ -7,7 +6,8 @@ from fabric.api import put, sudo, hide, settings
 from fabric.contrib.files import upload_template
 
 from .service import Service
-from ..shared import apt_get_install, get_template, fix_static_path, fix_webapp_path, SiteType
+from ..shared import apt_get_install, get_template, fix_absolute_path, SiteType
+from ..shared import get_django_setting, get_static_root, get_static_url, get_media_root, get_media_url, get_webapp_root, get_webapp_url
 from ..hooks import hook
 
 NGINX_USER = 'www-data'
@@ -83,30 +83,26 @@ class Nginx(Service):
 			else:
 				context['location_settings_str'] = ''
 
-			try:
-				module = import_module(site.get('settings_module'))
-			except:
-				module = None
-
-			if module:
+			if site['type'] == SiteType.DJANGO:
 				# Django site setup
 				context['location_settings_str'] = '\n\t\t'.join((context['location_settings_str'], 'uwsgi_pass unix:///var/run/uwsgi/app/%s/socket;' % site['name'], 'include uwsgi_params;'))
-				if hasattr(module, 'ALLOWED_HOSTS'):
-					context['allowed_hosts'] = ' '.join(module.ALLOWED_HOSTS)
-				else:
-					context['allowed_hosts'] = site['name']
+				context['allowed_hosts'] = ' '.join(get_django_setting(site, 'ALLOWED_HOSTS') or [site['name']])
 				# Setup the static and media locations
 				locations = []
-				domain = _get_domain(module.STATIC_URL)
+				static_root = get_static_root(site)
+				static_url = get_static_url(site)
+				media_root = get_media_root(site)
+				media_url = get_media_url(site)
+				domain = _get_domain(static_url)
 				if domain:
-					locations.append(_NGINX_LOCATION_DOMAIN % (_slash_wrap(_get_path(module.STATIC_URL)), domain))
+					locations.append(_NGINX_LOCATION_DOMAIN % (_slash_wrap(_get_path(static_url)), domain))
 				else:
-					locations.append(_NGINX_LOCATION % (_slash_wrap(module.STATIC_URL), fix_static_path(module.STATIC_ROOT, site)))
-				domain = _get_domain(module.MEDIA_URL)
+					locations.append(_NGINX_LOCATION % (_slash_wrap(static_url), static_root))
+				domain = _get_domain(media_url)
 				if domain:
-					locations.append(_NGINX_LOCATION_DOMAIN % (_slash_wrap(_get_path(module.MEDIA_URL)), domain))
+					locations.append(_NGINX_LOCATION_DOMAIN % (_slash_wrap(_get_path(media_url)), domain))
 				else:
-					locations.append(_NGINX_LOCATION % (_slash_wrap(module.MEDIA_URL), fix_static_path(module.MEDIA_ROOT, site)))
+					locations.append(_NGINX_LOCATION % (_slash_wrap(media_url), media_root))
 				# Add any custom locations
 				if self.settings.has_key('custom_locations'):
 					if isinstance(self.settings['custom_locations'], (tuple, list)):
@@ -116,11 +112,10 @@ class Nginx(Service):
 						locations.append(self.settings['custom_locations'])
 				context['static_locations'] = '\n\n\t'.join(locations)
 				# Configure the webapp if necessary
-				webapp_root = getattr(module, 'WEBAPP_ROOT', None)
-				webapp_url = _slash_wrap(getattr(module, 'WEBAPP_URL', '/'))
+				webapp_root = get_webapp_root(site)
 				if webapp_root:
-					webapp_root = fix_webapp_path(webapp_root)
-					webapp_index = getattr(module, 'WEBAPP_INDEX', 'index.html')
+					webapp_url = _slash_wrap(get_webapp_url(site))
+					webapp_index = get_django_setting(site, 'WEBAPP_INDEX') or 'index.html'
 					if webapp_url == '/':
 						context['app_location'] = '@%s-app' % site['name'].replace('.', '-')
 						context['webapp_location'] = _NGINX_WEBAPP_LOCATION % (webapp_url, webapp_root, webapp_index, context['app_location'])
@@ -128,7 +123,7 @@ class Nginx(Service):
 						context['app_location'] = '/'
 						context['webapp_location'] = _NGINX_WEBAPP_LOCATION % (webapp_url, webapp_root, webapp_index, '=404')
 					# Configure the 404 file if available
-					if os.path.isfile(os.path.join(module.WEBAPP_ROOT, '404.html')):
+					if os.path.isfile(os.path.join(get_django_setting(site, 'WEBAPP_ROOT'), '404.html')):
 						context['webapp_404'] = 'error_page 404 %s404.html;' % webapp_url
 					else:
 						context['webapp_404'] = ''

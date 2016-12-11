@@ -1,3 +1,4 @@
+from importlib import import_module
 import os
 import subprocess
 import sys
@@ -43,17 +44,8 @@ def get_template_directory():
 def get_template(name):
 	return os.path.join(get_template_directory(), name)
 
-def fix_static_path(path, site):
-	"""Changes a relative path (os.path.abspath('.')) that may have been specified in the settings."""
-	if path.startswith(os.path.abspath('.')):
-		if site.get('static_inside_project', False):
-			return path.replace(os.path.abspath('.'), get_project_directory(), 1)
-		else:
-			return path.replace(os.path.abspath('.'), '/srv/www', 1)
-	return path
-
-def fix_webapp_path(path):
-	"""Like fix_static_path, but webapps should always stay inside the project."""
+def fix_absolute_path(path):
+	"""If settings spill over from development for a path inside the project then translate it to the project directory on the server."""
 	if path.startswith(os.path.abspath('.')):
 		return path.replace(os.path.abspath('.'), get_project_directory(), 1)
 	return path
@@ -120,6 +112,46 @@ def get_requirements_packages():
 			return tuple(map(lambda package: package.strip(), f.readlines()))
 	except:
 		return tuple()
+
+def get_django_setting(site, setting):
+	try:
+		module = import_module(site['settings_module'])
+		return getattr(module, setting)
+	except:
+		return None
+
+def get_static_root(site):
+	"""Get the STATIC_ROOT for a Django site. If not set and STATIC_ROOT is the default None then set to a production default."""
+	static_root = get_django_setting(site, 'STATIC_ROOT')
+	if not static_root:
+		# Nevermind, static needs to be set in Django or it seems like it will throw an error
+		return os.path.join('/srv/www/static', site['name'])
+	return fix_absolute_path(static_root)
+
+def get_media_root(site):
+	"""Get the MEDIA_ROOT for a Django site. If not set and MEDIA_ROOT is the default '' then set to a production default."""
+	media_root = get_django_setting(site, 'MEDIA_ROOT')
+	if not media_root:
+		return os.path.join('/srv/www/media', site['name'])
+	return fix_absolute_path(media_root)
+
+def get_webapp_root(site):
+	"""Get the WEBAPP_ROOT but do not provide a production default if not set."""
+	webapp_root = get_django_setting(site, 'WEBAPP_ROOT')
+	if webapp_root:
+		webapp_root = fix_absolute_path(webapp_root)
+	return webapp_root
+
+def get_static_url(site):
+	"""Get the STATIC_URL for a Django site. If not set and STATIC_URL is the default None then set to a production default."""
+	return get_django_setting(site, 'STATIC_URL') or '/static/'
+
+def get_media_url(site):
+	"""Get the MEDIA_URL for a Django site. If not set and MEDIA_URL is the default '' then set to a production default."""
+	return get_django_setting(site, 'MEDIA_URL') or '/media/'
+
+def get_webapp_url(site):
+	return get_django_setting(site, 'WEBAPP_URL') or '/'
 
 def get_virtual_env(site=None):
 	# If virtualenv is available, then setup and use it

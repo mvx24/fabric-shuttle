@@ -7,6 +7,11 @@ class Service(object):
 	def __init__(self, **kwargs):
 		self.settings = {} if not kwargs else kwargs
 
+	def copy(self, **kwargs):
+		c = self.__class__(**self.settings)
+		c.settings.update(kwargs)
+		return c
+
 	def install(self):
 		pass
 

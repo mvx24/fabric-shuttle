@@ -3,6 +3,7 @@ import os
 import subprocess
 
 from fabric.api import sudo, local, put, settings
+from fabric.contrib.files import append
 
 from .services.nginx import NGINX_USER
 from .services.s3 import upload_to_s3, delete_from_s3
@@ -52,7 +53,7 @@ def _django_get_excluded(sites):
 	# Exlude all of the webapp's node_modules and bower_components
 	for site in sites:
 		module = import_module(site['settings_module'])
-		os.environ.setdefault("DJANGO_SETTINGS_MODULE", site['settings_module'])
+		os.environ.setdefault('DJANGO_SETTINGS_MODULE', site['settings_module'])
 		if hasattr(module, 'WEBAPP_ROOT'):
 			webapp_root = module.WEBAPP_ROOT
 			try:
@@ -80,10 +81,9 @@ def django_sync(sites):
 	with own_project():
 		# Preserve existing media if a subdirectory of the project
 		for site in sites:
-			module = import_module(site['settings_module'])
-			MEDIA_ROOT = fix_static_path(module.MEDIA_ROOT, site)
-			if MEDIA_ROOT.startswith(project_subpath) and exists(MEDIA_ROOT):
-				sudo('mv %s /tmp/%smedia' % (MEDIA_ROOT, env['project']))
+			media_root = get_media_root(site)
+			if media_root.startswith(project_subpath) and exists(media_root):
+				sudo('mv %s /tmp/%smedia' % (media_root, env['project']))
 
 		# Sync and set the owner
 		excluded = _django_get_excluded(sites)
@@ -93,29 +93,28 @@ def django_sync(sites):
 		# Create the media directory
 		# Restore existing media if a subdirectory of the project, if it is outside the project make sure it is owned by nginx
 		for site in sites:
-			module = import_module(site['settings_module'])
-			MEDIA_ROOT = fix_static_path(module.MEDIA_ROOT, site)
-			sudo('mkdir -p %s' % MEDIA_ROOT)
-			if MEDIA_ROOT.startswith(project_subpath):
+			media_root = get_media_root(site)
+			sudo('mkdir -p %s' % media_root)
+			if media_root.startswith(project_subpath):
 				if exists('/tmp/%smedia' % env['project']):
 					# Delete the media directory but leave intermediate directories then restore with a move
-					sudo('rm -rf %s' % MEDIA_ROOT)
-					sudo('mv /tmp/%smedia %s' % (env['project'], MEDIA_ROOT))
+					sudo('rm -rf %s' % media_root)
+					sudo('mv /tmp/%smedia %s' % (env['project'], media_root))
 			else:
-				sudo('chown -R %s:%s %s' % (NGINX_USER, NGINX_USER, MEDIA_ROOT))
+				sudo('chown -R %s:%s %s' % (NGINX_USER, NGINX_USER, media_root))
 
 			# Copy any additional webapp files
 			if site.has_key('webapp') and site['webapp'].get('files'):
 				from django.contrib.staticfiles import finders
-				if hasattr(module, 'WEBAPP_ROOT'):
-					WEBAPP_ROOT = fix_webapp_path(module.WEBAPP_ROOT)
+				webapp_root = get_webapp_root(site)
+				if webapp_root:
 					for filename in site['webapp']['files']:
 						result = finders.find(filename)
 						if not result:
 							print red('Error: Could not find static file %s.' % filename)
 							return
 						result = result[0] if isinstance(result, (list, tuple)) else result
-						put(result, os.path.join(WEBAPP_ROOT, filename), use_sudo=True, mode=0644)
+						put(result, os.path.join(webapp_root, filename), use_sudo=True, mode=0644)
 
 def django_sync_dry_run(sites):
 	"""Do an rsync dry run to see which files will be updated when deploying."""
@@ -133,6 +132,23 @@ def django_sync_down(path=''):
 	remote_path = os.path.join(get_project_directory(), path)
 	local('rsync -avz --exclude=".*" --exclude="*.pyc" --exclude="*.sh" --exclude="*.db" -e "%s" %s@%s:%s ./%s' % (_get_remote_shell(), env['user'], env['hosts'][0], remote_path, path))
 
+def django_append_settings(site):
+	"""Update Django settings with production ready values, possibly not set explicitly in the settings."""
+	filename = fix_absolute_path(os.path.abspath(site['settings_module'].replace('.', '/'))) + '.py'
+	txt = """
+	####################################
+	# Default/Fixed Paths from Shuttle #
+
+	MEDIA_ROOT = '%s'
+	MEDIA_URL = '%s'
+	STATIC_ROOT = '%s'
+	STATIC_URL = '%s'
+	""" % (get_media_root(site), get_media_url(site), get_static_root(site), get_static_url(site))
+	webapp_root = get_webapp_root(site)
+	if webapp_root:
+		txt += "\nWEBAPP_ROOT = '%s'\nWEBAPP_URL = '%s'\n" % (webapp_root, get_webapp_url(site))
+	append(filename, txt.replace('\t', ''))
+
 def deploy_webapp():
 	"""Deploy a webapp to S3 with the prefix of WEBAPP_URL. If site is not specified, then the command will be run on all sites."""
 	site = env.get('site')
@@ -144,15 +160,10 @@ def deploy_webapp():
 		return
 
 	if site['type'] == SiteType.DJANGO:
-		try:
-			module = import_module(site['settings_module'])
-			root = getattr(module, 'WEBAPP_ROOT', None)
-			prefix = getattr(module, 'WEBAPP_URL', None)
-			if not root:
-				return
-		except:
-			print red('Error: Could not import webapp settings to deploy.')
+		root = get_webapp_root(site)
+		if not root:
 			return
+		prefix = get_webapp_url(site)
 	else:
 		if not site.has_key('webapp'):
 			return

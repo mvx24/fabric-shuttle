@@ -4,6 +4,7 @@ import StringIO
 import sys
 
 from fabric.api import task, run, sudo, put, cd, env, hide, settings, local
+from fabric.contrib.files import exists
 
 from .shared import *
 from .deploy import *
@@ -159,15 +160,14 @@ def deploy():
 			with own_project():
 				with cd(get_project_directory()):
 					for site in sites:
+						django_append_settings(site)
 						python = get_python_interpreter(site)
 						# Only syncdb for versions below 1.7
 						#sudo('python manage.py syncdb --settings %s --noinput' % site['settings_module'])
 						sudo('%s manage.py migrate --settings %s --noinput' % (python, site['settings_module']))
-						with settings(warn_only=True):
-							# The collectstatic with --clear with raise an exception and fail if the static directory does not already exist, so retry without --clear if it fails
-							result = sudo('%s manage.py collectstatic --settings %s --noinput --clear' % (python, site['settings_module']))
-							if result.failed:
-								sudo('%s manage.py collectstatic --settings %s --noinput' % (python, site['settings_module']))
+						# The collectstatic with --clear with raise an exception and fail if the static directory does not already exist, so only clear if it exists
+						clear = '--clear' if exists(get_static_root(site)) else ''
+						sudo('%s manage.py collectstatic --settings %s --noinput %s' % (python, site['settings_module'], clear))
 						if site.has_key('remote_tests') and site['remote_tests']:
 							with settings(warn_only=True):
 								sudo('%s manage.py test %s --settings %s ' % (python, ' '.join(site['remote_tests']), site['settings_module']))
@@ -211,7 +211,7 @@ def install(*service_names):
 	""" Install services on the server. """
 	# Install the minimum common packages first
 	apt_get_update()
-	apt_get_install('gcc', 'make', 'linux-headers-$(uname -r)', 'build-essential', 'libtool', 'autoconf', 'zip')
+	apt_get_install('gcc', 'make', 'linux-headers-$(uname -r)', 'build-essential', 'libtool', 'autoconf', 'libssl-dev', 'libffi-dev', 'zip')
 	for service in env['services']:
 		if not service_names or service.name in service_names:
 			service.install()
