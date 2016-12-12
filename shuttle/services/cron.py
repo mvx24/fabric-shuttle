@@ -33,7 +33,7 @@ class Cron(Service):
 					if isinstance(job, (str, unicode)):
 						lines.append('0 0 * * * cd %s && %s manage.py %s --settings %s >/dev/null 2>&1' % (get_project_directory(), get_python_interpreter(), job, site['settings_module']))
 					else:
-						lines.append(' '.join())
+						lines.append(' '.join(job))
 				lines.append(end)
 			if lines:
 				import sha
