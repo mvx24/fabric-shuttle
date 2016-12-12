@@ -3,12 +3,21 @@ import tempfile
 from fabric.api import put, sudo
 from fabric.contrib.files import append, sed
 
+from .nginx import NGINX_USER
 from .service import Service
 from ..formats import format_ini
 from ..hooks import hook
-from ..shared import pip_install, get_template
+from ..shared import pip_install, get_template, get_project_directory, get_python_interpreter
 
 _CONFIG_FILE = '/etc/supervisor/supervisor.conf'
+
+django_management_program = {
+	'numprocs': '4',
+	'process_name': '%(program_name)s_%(process_num)02d',
+	'autostart': 'true',
+	'autorestart': 'true',
+	'user': NGINX_USER
+}
 
 # NOTE: supervisor doesn't support quotes around the ini values in config files
 
@@ -40,8 +49,23 @@ class Supervisor(Service):
 		self.restart()
 
 	def site_config(self, site):
+		# Any supervisor configuration can be used but shortcuts are provided for Django
+		# If settings has 'program:name': 'management command' this will be expanded with default settings and correctly resolved to the project/virtualenv
+		# Likewise if a 'program:name': { 'command': 'manage.py management command', ... } is used this will also be resolved to the project/virtualenv
 		with hook('site config %s' % self.name, self, site):
 			if self.settings:
+				# Process shortcuts on setting up rq management commands
+				for program, config in self.settings.items():
+					if program.startswith('program:'):
+						if isinstance(config, (str, unicode)):
+							command = config
+							config = self.settings[program] = django_management_program.copy()
+							config['command'] = 'manage.py ' + command
+						# Expand a manage.py command to use the correct python interpreter
+						command = config.get('command', '')
+						if command.startswith('manage.py'):
+							config['command'] = get_python_interpreter() + ' ' + command
+							config['directory'] = get_project_directory()
 				import StringIO
 				file_name = '/etc/supervisor/%s.conf' % site['name']
 				put(StringIO.StringIO(format_ini(self.settings, quotes=False)), file_name, use_sudo=True, mode=0644)

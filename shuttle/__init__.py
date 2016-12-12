@@ -154,6 +154,7 @@ def deploy():
 					local('python manage.py test %s --settings %s' % (' '.join(site['local_tests']), site['settings_module']))
 			uwsgi = find_service('uwsgi')
 			nginx = find_service('nginx')
+			supervisor = find_service('supervisor')
 			uwsgi.stop()
 			nginx.stop()
 			django_sync(sites)
@@ -177,6 +178,8 @@ def deploy():
 							sudo('ln -sf /etc/uwsgi/apps-available/%s.ini /etc/uwsgi/apps-enabled/%s.ini' % (site['name'], site['name']))
 			uwsgi.start()
 			nginx.start()
+			if supervisor:
+				supervisor.restart()
 
 @task
 def manage(*args):
