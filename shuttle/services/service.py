@@ -4,8 +4,11 @@ from ..hooks import hook
 
 class Service(object):
 
-	def __init__(self, **kwargs):
-		self.settings = {} if not kwargs else kwargs
+	def __init__(self, *args, **kwargs):
+		self.settings = {}
+		for settings_dict in args:
+			self.settings.update(settings_dict)
+		self.settings.update(kwargs)
 
 	def copy(self, **kwargs):
 		c = self.__class__(**self.settings)
