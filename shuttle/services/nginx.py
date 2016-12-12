@@ -22,6 +22,11 @@ def _get_domain(url):
 def _get_path(url):
 	return urlparse.urlparse(url).path
 
+def _slash_append(path):
+	if not path.endswith('/'):
+		return path + '/'
+	return path
+
 def _slash_wrap(path):
 	if path.startswith('/'):
 		if path.endswith('/'):
@@ -97,12 +102,12 @@ class Nginx(Service):
 				if domain:
 					locations.append(_NGINX_LOCATION_DOMAIN % (_slash_wrap(_get_path(static_url)), domain))
 				else:
-					locations.append(_NGINX_LOCATION % (_slash_wrap(static_url), static_root))
+					locations.append(_NGINX_LOCATION % (_slash_wrap(static_url), _slash_append(static_root)))
 				domain = _get_domain(media_url)
 				if domain:
 					locations.append(_NGINX_LOCATION_DOMAIN % (_slash_wrap(_get_path(media_url)), domain))
 				else:
-					locations.append(_NGINX_LOCATION % (_slash_wrap(media_url), media_root))
+					locations.append(_NGINX_LOCATION % (_slash_wrap(media_url), _slash_append(media_root)))
 				# Add any custom locations
 				if self.settings.has_key('custom_locations'):
 					if isinstance(self.settings['custom_locations'], (tuple, list)):
@@ -118,10 +123,10 @@ class Nginx(Service):
 					webapp_index = get_django_setting(site, 'WEBAPP_INDEX') or 'index.html'
 					if webapp_url == '/':
 						context['app_location'] = '@%s-app' % site['name'].replace('.', '-')
-						context['webapp_location'] = _NGINX_WEBAPP_LOCATION % (webapp_url, webapp_root, webapp_index, context['app_location'])
+						context['webapp_location'] = _NGINX_WEBAPP_LOCATION % (webapp_url, _slash_append(webapp_root), webapp_index, context['app_location'])
 					else:
 						context['app_location'] = '/'
-						context['webapp_location'] = _NGINX_WEBAPP_LOCATION % (webapp_url, webapp_root, webapp_index, '=404')
+						context['webapp_location'] = _NGINX_WEBAPP_LOCATION % (webapp_url, _slash_append(webapp_root), webapp_index, '=404')
 					# Configure the 404 file if available
 					if os.path.isfile(os.path.join(get_django_setting(site, 'WEBAPP_ROOT'), '404.html')):
 						context['webapp_404'] = 'error_page 404 %s404.html;' % webapp_url

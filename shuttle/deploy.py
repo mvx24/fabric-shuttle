@@ -147,6 +147,10 @@ def django_append_settings(site):
 	webapp_root = get_webapp_root(site)
 	if webapp_root:
 		txt += "\nWEBAPP_ROOT = '%s'\nWEBAPP_URL = '%s'\n" % (webapp_root, get_webapp_url(site))
+	# For vagrant dev boxes add localhost to the ALLOWED_HOSTS
+	if env.get('vagrant'):
+		allowed_hosts = ', '.join(["'%s'" % host for host in (get_django_setting(site, 'ALLOWED_HOSTS') or [site['name']])])
+		txt += "\nALLOWED_HOSTS = [%s, 'localhost']\n" % allowed_hosts
 	append(filename, txt.replace('\t', ''))
 
 def deploy_webapp():
