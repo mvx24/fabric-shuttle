@@ -15,6 +15,8 @@ class Service(object):
 		c.settings.update(kwargs)
 		return c
 
+	# All the setup commands
+
 	def install(self):
 		pass
 
@@ -26,6 +28,8 @@ class Service(object):
 
 	def site_config(self, site):
 		pass
+
+	# Functions to alter the service running state
 
 	def start(self):
 		if hasattr(self, 'script'):
@@ -41,3 +45,8 @@ class Service(object):
 		if hasattr(self, 'script'):
 			with hook('restart %s' % self.name, self):
 				sudo('service %s restart' % self.script, pty=False)
+
+	# Additional settings to use when deploying the site
+
+	def get_site_settings(self, site):
+		return {}

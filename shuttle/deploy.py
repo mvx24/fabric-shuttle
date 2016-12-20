@@ -151,6 +151,11 @@ def django_append_settings(site):
 	if env.get('vagrant'):
 		allowed_hosts = ', '.join(["'%s'" % host for host in (get_django_setting(site, 'ALLOWED_HOSTS') or [site['name']])])
 		txt += "\nALLOWED_HOSTS = [%s, 'localhost']\n" % allowed_hosts
+	# Each service might have additional settings
+	for service in site.get('services', []):
+		site_settings = service.get_site_settings(site)
+		if site_settings:
+			txt += '\n' + '\n'.join(["%s = '%s'" % item for item in site_settings.items()]) + '\n'
 	append(filename, txt.replace('\t', ''))
 
 def deploy_webapp():
