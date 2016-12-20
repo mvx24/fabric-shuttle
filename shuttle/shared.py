@@ -2,6 +2,7 @@ from importlib import import_module
 import os
 import subprocess
 import sys
+import time
 
 from fabric.api import env, sudo, run, hide, settings
 from fabric.contrib.files import exists
@@ -98,6 +99,12 @@ def apt_get_install(*packages):
 			print '%s already installed.' % package
 
 def apt_get_update():
+	# Don't update apt-get if not older than a day
+	with hide('everything'), settings(warn_only=True):
+		result = run('stat -c %Z /var/cache/apt/pkgcache.bin')
+		if result.succeeded and (int(time.time()) - int(result)) < (24 * 60 * 60):
+			print 'apt-get is up to date'
+			return
 	sudo('apt-get update -y')
 
 def apt_get_upgrade_packages():
