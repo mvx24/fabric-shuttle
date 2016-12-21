@@ -24,7 +24,7 @@ setup(
 	],
 	keywords='fabric deployment development vagrant provisioning services',
 	packages=find_packages(),
-	install_requires=['fabric', 'boto'],
+	install_requires=['fabric', 'boto', 'pyyaml'],
 	package_data={
 		'': ['templates/*']
 	}

@@ -8,5 +8,6 @@ from .s3 import S3
 from .geoip import GeoIP
 from .cron import Cron
 from .supervisor import Supervisor
+from .snowplow import Snowplow
 
-__all__ = ['Memcached', 'MySQL', 'Nginx', 'Postgres', 'Redis', 'UWSGI', 'S3', 'GeoIP', 'Cron', 'Supervisor']
+__all__ = ['Memcached', 'MySQL', 'Nginx', 'Postgres', 'Redis', 'UWSGI', 'S3', 'GeoIP', 'Cron', 'Supervisor', 'Snowplow']
