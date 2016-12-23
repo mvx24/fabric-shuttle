@@ -45,6 +45,15 @@ def get_template_directory():
 def get_template(name):
 	return os.path.join(get_template_directory(), name)
 
+def chown(paths, username='root', group='root'):
+	"""Change the owner and group of a path or multiple paths. The return value from put() can be wrapped in this directly."""
+	if not paths:
+		return
+	if isinstance(paths, (str, unicode)):
+		paths = [paths]
+	for path in paths:
+		sudo('chown -R %s:%s %s' % (username, group, path))
+
 def fix_absolute_path(path):
 	"""If settings spill over from development for a path inside the project then translate it to the project directory on the server."""
 	if path.startswith(os.path.abspath('.')):
