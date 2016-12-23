@@ -4,7 +4,7 @@ from fabric.api import put, sudo
 
 from .service import Service
 from ..hooks import hook
-from ..shared import apt_get_install, pip_install
+from ..shared import apt_get_install, pip_install, chown
 
 class Memcached(Service):
 	name = 'memcached'
@@ -25,8 +25,7 @@ class Memcached(Service):
 					else:
 						f.write('%s\n' % setting)
 				f.flush()
-				put(f.name, '/etc/memcached.conf', use_sudo=True, mode=0644)
-				sudo('chown root:root /etc/memcached.conf')
+				chown(put(f.name, '/etc/memcached.conf', use_sudo=True, mode=0644))
 		self.restart()
 
 	def site_install(self, site):

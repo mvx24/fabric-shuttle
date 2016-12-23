@@ -4,7 +4,7 @@ from fabric.api import put, sudo
 
 from .service import Service
 from ..hooks import hook
-from ..shared import apt_get_install, pip_install
+from ..shared import apt_get_install, pip_install, chown
 
 class MySQL(Service):
 	name = 'mysql'
@@ -23,8 +23,7 @@ class MySQL(Service):
 						for setting in self.settings[section]:
 							f.write('%s = %s\n' % (setting, self.settings[section][setting]))
 					f.flush()
-					put(f.name, '/etc/mysql/conf.d/fabric.cnf', use_sudo=True, mode=0644)
-					sudo('chown root:root /etc/mysql/conf.d/fabric.cnf')
+					chown(put(f.name, '/etc/mysql/conf.d/fabric.cnf', use_sudo=True, mode=0644))
 		self.restart()
 
 	def site_install(self, site):

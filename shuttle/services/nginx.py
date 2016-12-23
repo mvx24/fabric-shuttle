@@ -6,7 +6,7 @@ from fabric.api import put, sudo, hide, settings
 from fabric.contrib.files import upload_template
 
 from .service import Service
-from ..shared import apt_get_install, get_template, fix_absolute_path, SiteType
+from ..shared import apt_get_install, get_template, fix_absolute_path, SiteType, chown
 from ..shared import get_django_setting, get_static_root, get_static_url, get_media_root, get_media_url, get_webapp_root, get_webapp_url
 from ..hooks import hook
 
@@ -62,8 +62,7 @@ class Nginx(Service):
 						else:
 							f.write('%s %s;\n' % (section, str(self.settings[section])))
 					f.flush()
-					put(f.name, '/etc/nginx/conf.d/fabric.conf', use_sudo=True, mode=0644)
-					sudo('chown root:root /etc/nginx/conf.d/fabric.conf')
+					chown(put(f.name, '/etc/nginx/conf.d/fabric.conf', use_sudo=True, mode=0644))
 		self.restart()
 
 	def site_config(self, site):

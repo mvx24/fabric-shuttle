@@ -114,7 +114,7 @@ def django_sync(sites):
 							print red('Error: Could not find static file %s.' % filename)
 							return
 						result = result[0] if isinstance(result, (list, tuple)) else result
-						put(result, os.path.join(webapp_root, filename), use_sudo=True, mode=0644)
+						chown(put(result, os.path.join(webapp_root, filename), use_sudo=True, mode=0644), NGINX_USER, NGINX_USER)
 
 def django_sync_dry_run(sites):
 	"""Do an rsync dry run to see which files will be updated when deploying."""

@@ -5,7 +5,7 @@ from fabric.contrib.files import append
 
 from .service import Service
 from ..hooks import hook
-from ..shared import apt_get_install, pip_install
+from ..shared import apt_get_install, pip_install, chown
 
 class Redis(Service):
 	name = 'redis'
@@ -25,8 +25,7 @@ class Redis(Service):
 						else:
 							f.write('%s\n' % setting)
 					f.flush()
-					put(f.name, '/etc/redis/fabric.conf', use_sudo=True, mode=0644)
-					sudo('chown root:root /etc/redis/fabric.conf')
+					chown(put(f.name, '/etc/redis/fabric.conf', use_sudo=True, mode=0644))
 					append('/etc/redis/redis.conf', 'include /etc/redis/fabric.conf', use_sudo=True)
 		self.restart()
 

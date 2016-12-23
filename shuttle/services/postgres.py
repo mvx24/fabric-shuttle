@@ -7,7 +7,7 @@ from fabric.contrib.files import append
 
 from .service import Service
 from ..hooks import hook
-from ..shared import apt_get_install, pip_install, find_service
+from ..shared import apt_get_install, pip_install, find_service, chown
 
 _POSTGRES_USER = 'postgres'
 
@@ -71,8 +71,7 @@ class Postgres(Service):
 					for setting in self.settings:
 						f.write('%s = %s\n' % (setting, self.settings[setting]))
 					f.flush()
-					put(f.name, '/etc/postgresql/9.1/main/fabric.conf', use_sudo=True, mode=0644)
-					sudo('chown %s:%s /etc/postgresql/9.1/main/fabric.conf' % (_POSTGRES_USER, _POSTGRES_USER))
+					chown(put(f.name, '/etc/postgresql/9.1/main/fabric.conf', use_sudo=True, mode=0644), _POSTGRES_USER, _POSTGRES_USER)
 					append('/etc/postgresql/9.1/main/postgresql.conf', "\n\ninclude 'fabric.conf'\n", use_sudo=True)
 		self.restart()
 

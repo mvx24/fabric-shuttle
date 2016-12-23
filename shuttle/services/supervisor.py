@@ -7,7 +7,7 @@ from .nginx import NGINX_USER
 from .service import Service
 from ..formats import format_ini
 from ..hooks import hook
-from ..shared import pip_install, get_template, get_project_directory, get_python_interpreter
+from ..shared import pip_install, get_template, get_project_directory, get_python_interpreter, chown
 
 _CONFIG_FILE = '/etc/supervisor/supervisor.conf'
 
@@ -30,7 +30,7 @@ class Supervisor(Service):
 			pip_install(None, self.name)
 			# To run automatically at startup with ubuntu and other systems:
 			# http://serverfault.com/questions/96499/how-to-automatically-start-supervisord-on-linux-ubuntu
-			put(get_template('supervisor-upstart.conf'), '/etc/init/supervisor.conf', use_sudo=True, mode=0644)
+			chown(put(get_template('supervisor-upstart.conf'), '/etc/init/supervisor.conf', use_sudo=True, mode=0644))
 			# Start the default configuration, with logging and pid file location changed to be more like nginx and other services
 			sudo('mkdir -p /etc/supervisor')
 			sudo('mkdir -p /var/log/supervisor')
@@ -43,7 +43,7 @@ class Supervisor(Service):
 		with hook('config %s' % self.name, self):
 			if self.settings:
 				import StringIO
-				put(StringIO.StringIO(format_ini(self.settings, quotes=False)), '/etc/supervisor/supervisor-fabric.conf', use_sudo=True, mode=0644)
+				chown(put(StringIO.StringIO(format_ini(self.settings, quotes=False)), '/etc/supervisor/supervisor-fabric.conf', use_sudo=True, mode=0644))
 				append(_CONFIG_FILE, '[include]', use_sudo=True)
 				append(_CONFIG_FILE, 'files=/etc/supervisor/supervisor-fabric.conf', use_sudo=True)
 		self.restart()
@@ -68,7 +68,7 @@ class Supervisor(Service):
 							config['directory'] = get_project_directory()
 				import StringIO
 				file_name = '/etc/supervisor/%s.conf' % site['name']
-				put(StringIO.StringIO(format_ini(self.settings, quotes=False)), file_name, use_sudo=True, mode=0644)
+				chown(put(StringIO.StringIO(format_ini(self.settings, quotes=False)), file_name, use_sudo=True, mode=0644))
 				append(_CONFIG_FILE, '[include]', use_sudo=True)
 				append(_CONFIG_FILE, 'files=%s' % file_name, use_sudo=True)
 		self.restart()
