@@ -4,11 +4,11 @@ import os
 import StringIO
 import yaml
 
-from fabric.api import cd, put, settings, sudo
+from fabric.api import cd, put, settings, sudo, env
 from fabric.context_managers import shell_env
 from fabric.contrib.files import exists
 
-from .cron import add_crontab_section, CronSchedule, CronJob
+from .cron import add_crontab_section, remove_crontab_section, CronSchedule, CronJob
 from .service import Service
 from ..hooks import hook
 from ..shared import apt_get_install, pip_install, red, chown
@@ -54,18 +54,7 @@ _DEFAULT_SETTINGS = {
 
 def _config_postgres(target):
 	# Assumes that the target database is already installed, running, and setup with the correct credentials but will try to create both the database and table
-	sql = []
-	with open(_CREATE_TABLE_PATH) as f:
-		for line in f.readlines():
-			line = line.strip()
-			if line.startswith('--'):
-				continue
-			sql.append(line.replace('\t', '').replace('\n', '').replace("'", "\\'"))
-	sql = ' '.join(sql)
-
-	# Be sure postgressql client is installed and available
 	apt_get_install('postgresql-client')
-
 	pg_env = {
 		'PGHOST': target['host'],
 		'PGPORT': str(target.get('port', '5432')),
@@ -81,7 +70,7 @@ def _config_postgres(target):
 			if target.get('table', 'atomic.events') != 'atomic.events':
 				print red('Only atomic.events is supported as a snowplow postgres storage table name.')
 				return
-			sudo("psql -c $'%s'" % sql)
+			sudo('psql -f %s' % _CREATE_TABLE_PATH)
 
 class Snowplow(Service):
 	name = 'snowplow'
@@ -95,7 +84,7 @@ class Snowplow(Service):
 				with cd(_INSTALL_DIR):
 					sudo('wget --no-clobber %s' % _PACKAGE_URL)
 					sudo('unzip %s' % _PACKAGE_URL.split('/')[-1])
-					sudo('wget --no-clobber %s' % _MASTER_URL)
+					sudo('wget --no-clobber --output-document %s %s' % (_MASTER_FILE, _MASTER_URL))
 					sudo('unzip %s' % _MASTER_FILE)
 
 	def config(self):
@@ -117,10 +106,13 @@ class Snowplow(Service):
 							_config_postgres(target)
 
 			# Schedule cron jobs
+			chain = self.settings.get('chain', _DEFAULT_SETTINGS['chain'])
+			if not chain.log_name:
+				chain.log_name = self.name
 			loader_skip = ','.join(self.settings.get('loader_skip', _DEFAULT_SETTINGS['loader_skip']))
 			if loader_skip:
 				loader_skip = '--skip ' + loader_skip
-			loader_job = CronJob(_LOADER_COMMAND + loader_skip, log_name=self.name, chain=self.settings.get('chain', _DEFAULT_SETTINGS['chain']))
+			loader_job = CronJob(_LOADER_COMMAND + loader_skip, log_name=self.name, chain=chain)
 			runner_skip = ','.join(self.settings.get('runner_skip', _DEFAULT_SETTINGS['runner_skip']))
 			if runner_skip:
 				runner_skip = '--skip ' + runner_skip
@@ -128,5 +120,19 @@ class Snowplow(Service):
 			if runner_enrichments:
 				runner_enrichments = '--enrichments ' + runner_enrichments
 			runner_job = CronJob(_RUNNER_COMMAND + runner_enrichments + runner_skip, log_name=self.name, schedule=self.settings.get('schedule', _DEFAULT_SETTINGS['schedule']), chain=loader_job)
+
+			# Configure cron with the first site with the Snowplow service or just the active or first site if no Snowplow service is found
+			sites = env['sites'].values() or []
+			snowplow_site = env.get('site') or sites[0]
+			for site in sites:
+				if site:
+					found = False
+					for service in site.get('services', []):
+						if isinstance(service, Snowplow):
+							found = True
+							break
+					if found:
+						snowplow_site = site
+						break
 			remove_crontab_section(_CRONTAB_USER, _CRONTAB_SECTION)
-			add_crontab_section(_CRONTAB_USER, _CRONTAB_SECTION, runner_job)
+			add_crontab_section(_CRONTAB_USER, _CRONTAB_SECTION, runner_job, snowplow_site)
