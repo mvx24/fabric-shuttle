@@ -1,6 +1,6 @@
 from fabric.api import run, sudo, cd
 
-from ..shared import apt_get_install
+from ..shared import apt_get_install, get_django_setting
 
 _GEOS_URL = 'http://archive.ubuntu.com/ubuntu/pool/universe/g/geos/geos_3.3.3.orig.tar.gz'
 _GEOS_DIR = 'geos-3.3.3'
@@ -51,10 +51,11 @@ def install_postgis():
 		run('make')
 		sudo('make install')
 
-def site_config_postgis(connect_args):
-	sudo("psql %s %s -c 'CREATE EXTENSION postgis;'" % (connect_args, DATABASES['default']['NAME']), user=user)
-	sudo("psql %s %s -c 'CREATE EXTENSION postgis_topology;'" % (connect_args, DATABASES['default']['NAME']), user=user)
+def site_config_postgis(postgres, site):
+	database = get_django_setting(site, 'DATABASES')['default']
+	postgres.execute_sql('CREATE EXTENSION postgis;', site)
+	postgres.execute_sql('CREATE EXTENSION postgis_topology;', site)
 	# http://tmbu.blogspot.com/2012/11/postgres-postgis-django-os-x-and.html
 	# http://stackoverflow.com/questions/4737982/django-avoids-creating-pointfield-in-the-database-when-i-run-python-manage-py-sy
-	sudo("psql %s %s -c 'GRANT ALL PRIVILEGES ON geometry_columns TO %s;'" % (connect_args, DATABASES['default']['NAME'], DATABASES['default']['USER']), user=user)
-	sudo("psql %s %s -c 'GRANT ALL PRIVILEGES ON spatial_ref_sys TO %s;'" % (connect_args, DATABASES['default']['NAME'], DATABASES['default']['USER']), user=user)
+	postgres.execute_sql('GRANT ALL PRIVILEGES ON geometry_columns TO %s;' % database['USER'], site)
+	postgres.execute_sql('GRANT ALL PRIVILEGES ON spatial_ref_sys TO %s;' % database['USER'], site)
