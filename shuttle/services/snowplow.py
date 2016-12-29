@@ -9,9 +9,10 @@ from fabric.context_managers import shell_env
 from fabric.contrib.files import exists
 
 from .cron import add_crontab_section, remove_crontab_section, CronSchedule, CronJob
+from .postgres import Postgres, POSTGRES_USER
 from .service import Service
 from ..hooks import hook
-from ..shared import apt_get_install, pip_install, red, chown
+from ..shared import apt_get_install, pip_install, red, chown, find_service
 
 _PACKAGE_URL = 'http://dl.bintray.com/snowplow/snowplow-generic/snowplow_emr_r77_great_auk.zip'
 _MASTER_URL = 'https://codeload.github.com/snowplow/snowplow/zip/master'
@@ -62,6 +63,11 @@ def _config_postgres(target):
 		'PGPASSWORD': target['password'],
 		'PGDATABASE': target['database']
 	}
+	# Create the user if a local database
+	if find_service(Postgres.name) is not None:
+		with settings(warn_only=True):
+			sudo('createuser --createdb --no-superuser --no-createrole %s' % target['username'], user=POSTGRES_USER)
+			sudo("psql -c \"ALTER USER %s WITH PASSWORD '%s';\"" % (target['username'], target['password']), user=POSTGRES_USER)
 	with shell_env(**pg_env):
 		with settings(warn_only=True):
 			# Create the database
