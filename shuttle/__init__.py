@@ -203,6 +203,7 @@ def manage(*args):
 @task
 def setup(*service_names):
 	""" Setup a server from scratch by installing and configuring services for the server and the sites. """
+	env['setup'] = True
 	check_production_requirements()
 	install(*service_names)
 	config(*service_names)

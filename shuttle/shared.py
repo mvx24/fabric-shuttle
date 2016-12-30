@@ -111,7 +111,7 @@ def apt_get_update():
 	# Don't update apt-get if not older than a day
 	with hide('everything'), settings(warn_only=True):
 		result = run('stat -c %Z /var/cache/apt/pkgcache.bin')
-		if result.succeeded and (int(time.time()) - int(result)) < (24 * 60 * 60):
+		if not env.get('setup') and result.succeeded and (int(time.time()) - int(result)) < (24 * 60 * 60):
 			print 'apt-get is up to date'
 			return
 	sudo('apt-get update -y')
