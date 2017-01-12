@@ -31,7 +31,7 @@ class UWSGI(Service):
 				'project_dir': get_project_directory(),
 				'settings_module': site['settings_module'],
 				'wsgi_module': wsgi_module,
-				'virtual_env': get_virtual_env(site) or '',
+				'virtual_env': get_virtual_env(site),
 				'custom_settings': self.get_custom_settings()
 			}
 			upload_template(get_template('uwsgi-app.ini'), '/etc/uwsgi/apps-available/%s.ini' % site['name'], context=context, use_sudo=True, mode=0644)

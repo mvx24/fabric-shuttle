@@ -66,12 +66,12 @@ def _config_postgres(target):
 	# Create the user if a local database
 	if find_service(Postgres.name) is not None:
 		with settings(warn_only=True):
-			sudo('createuser --createdb --no-superuser --no-createrole %s' % target['username'], user=POSTGRES_USER)
-			sudo("psql -c \"ALTER USER %s WITH PASSWORD '%s';\"" % (target['username'], target['password']), user=POSTGRES_USER)
+			sudo('createuser --echo --createdb --no-superuser --no-createrole %s' % target['username'], user=POSTGRES_USER)
+			sudo("psql --echo-queries -c \"ALTER USER %s WITH PASSWORD '%s';\"" % (target['username'], target['password']), user=POSTGRES_USER)
 	with shell_env(**pg_env):
 		with settings(warn_only=True):
 			# Create the database
-			sudo('createdb %s' % target['database'])
+			sudo('createdb --echo %s' % target['database'])
 			# Create the table - currently only atomic.events is supported as the table name
 			if target.get('table', 'atomic.events') != 'atomic.events':
 				print red('Only atomic.events is supported as a snowplow postgres storage table name.')

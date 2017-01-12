@@ -7,7 +7,7 @@ from fabric.contrib.files import append, exists
 from .postgis import *
 from .service import Service
 from ..hooks import hook
-from ..shared import apt_get_install, pip_install, find_service, chown, get_django_setting
+from ..shared import apt_get_install, pip_install, find_service, chown, get_django_setting, SiteType
 
 POSTGRES_USER = 'postgres'
 POSTGRES_GROUP = 'postgres'
@@ -26,11 +26,21 @@ def _pg_quote_config(key, value):
 		return "'%s'" % value
 	return value
 
+def _get_pg_env(site):
+	database = get_django_setting(site, 'DATABASES')['default']
+	return {
+		'PGHOST': database['HOST'],
+		'PGPORT': str(database.get('PORT') or '5432'),
+		'PGUSER': database['USER'],
+		'PGPASSWORD': database['PASSWORD'],
+		'PGDATABASE': database['NAME']
+	}
+
 class Postgres(Service):
 	name = 'postgres'
 	script = 'postgresql'
 
-	def execute_sql(raw_sql, site=None):
+	def execute_sql(self, raw_sql, site=None):
 		sql = []
 		for line in raw_sql.split('\n'):
 			line = line.strip()
@@ -39,19 +49,19 @@ class Postgres(Service):
 			sql.append(line.replace('\t', '').replace('\n', '').replace("'", "\\'"))
 		sql = ' '.join(sql)
 		if site:
-			database = get_django_setting(site, 'DATABASES')['default']
-			pg_env = {
-				'PGHOST': database['HOST'],
-				'PGPORT': str(database.get('PORT') or '5432'),
-				'PGUSER': database['USER'],
-				'PGPASSWORD': database['PASSWORD'],
-				'PGDATABASE': database['NAME']
-			}
-			with shell_env(**pg_env), settings(warn_only=True):
-				sudo("psql -c $'%s'" % sql)
+			with shell_env(**_get_pg_env(site)), settings(warn_only=True):
+				sudo("psql --echo-queries -c $'%s'" % sql)
 		else:
 			with settings(warn_only=True):
-				sudo("psql -c $'%s'" % sql, user=POSTGRES_USER)
+				sudo("psql --echo-queries -c $'%s'" % sql, user=POSTGRES_USER)
+
+	def execute_command(self, pg_command, site=None):
+		if site:
+			with shell_env(**_get_pg_env(site)), settings(warn_only=True):
+				sudo(pg_command)
+		else:
+			with settings(warn_only=True):
+				sudo(pg_command, user=POSTGRES_USER)
 
 	def install(self):
 		with hook('install %s' % self.name, self):
@@ -109,14 +119,15 @@ class Postgres(Service):
 
 	def site_config(self, site):
 		with hook('site config %s' % self.name, self, site):
-			# Create the user for django to access the database with
-			if find_service(self.name) is not None:
-				with settings(warn_only=True):
-					database = get_django_setting(site, 'DATABASES')['default']
-					sudo('createuser --createdb --no-superuser --no-createrole %s' % database['USER'], user=POSTGRES_USER)
-					sudo("psql -c \"ALTER USER %s WITH PASSWORD '%s';\"" % (database['USER'], database['PASSWORD']), user=POSTGRES_USER)
-			# Create the database
-			self.execute_sql('CREATE DATABASE %s;' % database['NAME'], site)
+			if site['type'] == SiteType.DJANGO:
+				database = get_django_setting(site, 'DATABASES')['default']
+				# Create the user for django to access the database with
+				if find_service(self.name) is not None:
+					with settings(warn_only=True):
+						self.execute_command('createuser --echo --createdb --no-superuser --no-createrole ' + database['USER'])
+						self.execute_sql("ALTER USER %s WITH PASSWORD '%s';" % (database['USER'], database['PASSWORD']))
+				# Create the database
+				self.execute_command('createdb --echo ' + database['NAME'], site)
 			# Setup postgis
 			if self.settings.get('postgis'):
 				site_config_postgis(self, site)
