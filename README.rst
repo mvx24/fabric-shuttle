@@ -16,6 +16,7 @@ Supported Services
 * redis
 * s3
 * supervisor
+* snowplow
 * uwsgi
 
 Extras

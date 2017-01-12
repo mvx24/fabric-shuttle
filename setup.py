@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
 	name='fabric-shuttle',
-	version='0.0.3',
+	version='0.0.4',
 	description='Declarative service-oriented approach with hooks for using Fabric to provision a machine or vagrant box.',
 	url='https://github.com/mvx24/fabric-shuttle',
 	author='mvx24',
@@ -24,7 +24,7 @@ setup(
 	],
 	keywords='fabric deployment development vagrant provisioning services',
 	packages=find_packages(),
-	install_requires=['fabric', 'boto', 'pyyaml'],
+	install_requires=['fabric', 'boto', 'django', 'pyyaml'],
 	package_data={
 		'': ['templates/*']
 	}
