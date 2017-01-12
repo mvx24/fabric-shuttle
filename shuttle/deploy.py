@@ -3,7 +3,7 @@ import os
 import subprocess
 
 from fabric.api import sudo, local, put, settings
-from fabric.contrib.files import append
+from fabric.contrib.files import append, upload_template
 
 from .services.nginx import NGINX_USER
 from .services.s3 import upload_to_s3, delete_from_s3
@@ -78,6 +78,8 @@ def django_sync(sites):
 	if not project_subpath.endswith('/'):
 		project_subpath += '/'
 	sudo('mkdir -p %s' % project_dir)
+	manage_dir = get_manage_directory()
+	sudo('mkdir -p %s' % manage_dir)
 	with own_project():
 		# Preserve existing media if a subdirectory of the project
 		for site in sites:
@@ -115,6 +117,11 @@ def django_sync(sites):
 							return
 						result = result[0] if isinstance(result, (list, tuple)) else result
 						chown(put(result, os.path.join(webapp_root, filename), use_sudo=True, mode=0644), NGINX_USER, NGINX_USER)
+
+		for site in sites:
+			# Create manage.py shortcuts the manage directory
+			context = {'project_dir': project_dir, 'settings_module': site['settings_module'], 'interpreter': get_python_interpreter(site)}
+			chown(upload_template(get_template('manage.py'), os.path.join(manage_dir, site['name'] + '.py'), context=context, backup=False, use_sudo=True, mode=0755), NGINX_USER, NGINX_USER)
 
 def django_sync_dry_run(sites):
 	"""Do an rsync dry run to see which files will be updated when deploying."""

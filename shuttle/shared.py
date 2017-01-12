@@ -46,7 +46,7 @@ def get_template(name):
 	return os.path.join(get_template_directory(), name)
 
 def chown(paths, username='root', group='root'):
-	"""Change the owner and group of a path or multiple paths. The return value from put() can be wrapped in this directly."""
+	"""Change the owner and group of a path or multiple paths. The return value from put() or upload_template() can be wrapped in this directly."""
 	if not paths:
 		return
 	if isinstance(paths, (str, unicode)):
@@ -121,6 +121,9 @@ def apt_get_upgrade_packages():
 
 def get_project_directory():
 	return os.path.join('/srv/www/apps', env['project'])
+
+def get_manage_directory():
+	return os.path.join('/srv/www/manage', env['project'])
 
 def get_requirements_packages():
 	try:

@@ -27,7 +27,7 @@ else:
 	# Handle target environment that doesn't support HTTPS verification
 	ssl._create_default_https_context = _create_unverified_https_context
 
-# Add the project path to sys.path, so that utils.fab can import from a site's settings_modules
+# Add the project path to sys.path, so that shuttle can import from a site's settings_modules
 # Will work for both a fabfile directory or file
 sys.path.append(os.path.dirname(env['real_fabfile'].rstrip('/')))
 
