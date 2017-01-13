@@ -187,16 +187,15 @@ def manage(*args):
 	site = env.get('site')
 	project_dir = get_project_directory()
 	with hook('manage %s' % args[0], args[1:]):
-		from services.nginx import NGINX_USER
 		if site is not None:
 			python = get_python_interpreter(site)
 			with cd(project_dir):
-				sudo('%s manage.py %s --settings %s' % (python, ' '.join(args), site['settings_module']), user=NGINX_USER)
+				sudo('%s manage.py %s --settings %s' % (python, ' '.join(args), site['settings_module']), user=WWW_USER)
 		else:
 			for site in env['sites'].values():
 				python = get_python_interpreter(site)
 				with cd(project_dir):
-					sudo('%s manage.py %s --settings %s' % (python, ' '.join(args), site['settings_module']), user=NGINX_USER)
+					sudo('%s manage.py %s --settings %s' % (python, ' '.join(args), site['settings_module']), user=WWW_USER)
 
 # Service tasks
 

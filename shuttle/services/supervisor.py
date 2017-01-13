@@ -3,11 +3,10 @@ import tempfile
 from fabric.api import put, sudo
 from fabric.contrib.files import append, sed
 
-from .nginx import NGINX_USER
 from .service import Service
 from ..formats import format_ini
 from ..hooks import hook
-from ..shared import pip_install, get_template, get_project_directory, get_python_interpreter, chown
+from ..shared import WWW_USER, pip_install, get_template, get_project_directory, get_python_interpreter, chown
 
 _CONFIG_FILE = '/etc/supervisor/supervisor.conf'
 
@@ -16,7 +15,7 @@ django_management_program = {
 	'process_name': '%(program_name)s_%(process_num)02d',
 	'autostart': 'true',
 	'autorestart': 'true',
-	'user': NGINX_USER
+	'user': WWW_USER
 }
 
 # NOTE: supervisor doesn't support quotes around the ini values in config files

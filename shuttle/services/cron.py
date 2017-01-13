@@ -3,10 +3,9 @@ import StringIO
 from fabric.api import sudo, put
 from fabric.contrib.files import append
 
-from .nginx import NGINX_USER
 from .service import Service
 from ..hooks import hook
-from ..shared import get_python_interpreter, get_project_directory, SiteType, chown
+from ..shared import WWW_USER, get_python_interpreter, get_project_directory, SiteType, chown
 
 class CronSchedule(object):
 	def __init__(self, minute='0', hour='0', day_of_month='*', month='*', day_of_week='*'):
@@ -116,8 +115,8 @@ class Cron(Service):
 			if isinstance(jobs, CronJob):
 				jobs = [jobs]
 			# Remove then add the existing crontab section
-			remove_crontab_section(NGINX_USER, section_name)
-			add_crontab_section(NGINX_USER, section_name, jobs, site)
+			remove_crontab_section(WWW_USER, section_name)
+			add_crontab_section(WWW_USER, section_name, jobs, site)
 			# Setup logging directories and logrotate.d
 			for job in jobs:
 				if job.log_name:

@@ -5,7 +5,6 @@ import subprocess
 from fabric.api import sudo, local, put, settings
 from fabric.contrib.files import append, upload_template
 
-from .services.nginx import NGINX_USER
 from .services.s3 import upload_to_s3, delete_from_s3
 from .shared import *
 
@@ -16,7 +15,7 @@ class own_project(object):
 	def __enter__(self):
 		sudo('chown -R %s:%s %s' % (env['user'], env['user'], get_project_directory()))
 	def __exit__(self, *_):
-		sudo('chown -R %s:%s %s' % (NGINX_USER, NGINX_USER, get_project_directory()))
+		sudo('chown -R %s:%s %s' % (WWW_USER, WWW_USER, get_project_directory()))
 
 def _get_remote_shell():
 	parts = ['ssh', '-p', env.get('port', '22')]
@@ -103,7 +102,7 @@ def django_sync(sites):
 					sudo('rm -rf %s' % media_root)
 					sudo('mv /tmp/%smedia %s' % (env['project'], media_root))
 			else:
-				sudo('chown -R %s:%s %s' % (NGINX_USER, NGINX_USER, media_root))
+				sudo('chown -R %s:%s %s' % (WWW_USER, WWW_USER, media_root))
 
 			# Copy any additional webapp files
 			if site.has_key('webapp') and site['webapp'].get('files'):
@@ -116,12 +115,12 @@ def django_sync(sites):
 							print red('Error: Could not find static file %s.' % filename)
 							return
 						result = result[0] if isinstance(result, (list, tuple)) else result
-						chown(put(result, os.path.join(webapp_root, filename), use_sudo=True, mode=0644), NGINX_USER, NGINX_USER)
+						chown(put(result, os.path.join(webapp_root, filename), use_sudo=True, mode=0644), WWW_USER, WWW_USER)
 
 		for site in sites:
 			# Create manage.py shortcuts the manage directory
 			context = {'project_dir': project_dir, 'settings_module': site['settings_module'], 'interpreter': get_python_interpreter(site)}
-			chown(upload_template(get_template('manage.py'), os.path.join(manage_dir, site['name'] + '.py'), context=context, backup=False, use_sudo=True, mode=0755), NGINX_USER, NGINX_USER)
+			chown(upload_template(get_template('manage.py'), os.path.join(manage_dir, site['name'] + '.py'), context=context, backup=False, use_sudo=True, mode=0755), WWW_USER, WWW_USER)
 
 def django_sync_dry_run(sites):
 	"""Do an rsync dry run to see which files will be updated when deploying."""

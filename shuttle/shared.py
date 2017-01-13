@@ -7,6 +7,8 @@ import time
 from fabric.api import env, sudo, run, hide, settings
 from fabric.contrib.files import exists
 
+WWW_USER = 'www-data'
+
 # Dictionary of environments set from the fab file.
 environments = {}
 
