@@ -13,9 +13,9 @@ class own_project(object):
 	def __init__(self):
 		pass
 	def __enter__(self):
-		sudo('chown -R %s:%s %s' % (env['user'], env['user'], get_project_directory()))
+		chown(get_project_directory(), env['user'], env['user'])
 	def __exit__(self, *_):
-		sudo('chown -R %s:%s %s' % (WWW_USER, WWW_USER, get_project_directory()))
+		chown(get_project_directory(), WWW_USER, WWW_USER)
 
 def _get_remote_shell():
 	parts = ['ssh', '-p', env.get('port', '22')]
@@ -102,7 +102,7 @@ def django_sync(sites):
 					sudo('rm -rf %s' % media_root)
 					sudo('mv /tmp/%smedia %s' % (env['project'], media_root))
 			else:
-				sudo('chown -R %s:%s %s' % (WWW_USER, WWW_USER, media_root))
+				chown(media_root, WWW_USER, WWW_USER)
 
 			# Copy any additional webapp files
 			if site.has_key('webapp') and site['webapp'].get('files'):

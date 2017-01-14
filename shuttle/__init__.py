@@ -169,6 +169,7 @@ def deploy():
 						# The collectstatic with --clear with raise an exception and fail if the static directory does not already exist, so only clear if it exists
 						clear = '--clear' if exists(get_static_root(site)) else ''
 						sudo('%s manage.py collectstatic --settings %s --noinput %s' % (python, site['settings_module'], clear))
+						chown(get_static_root(site), WWW_USER, WWW_USER)
 						if site.has_key('remote_tests') and site['remote_tests']:
 							with settings(warn_only=True):
 								sudo('%s manage.py test %s --settings %s ' % (python, ' '.join(site['remote_tests']), site['settings_module']))
