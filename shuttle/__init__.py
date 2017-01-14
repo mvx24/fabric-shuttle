@@ -63,7 +63,7 @@ class CompactStdout(object):
 			sys.__stdout__.write(s)
 			if not self.in_percent:
 				sys.__stdout__.write('\n')
-		elif s.startswith('[%s]' % env.host_string):
+		elif s.startswith('[%s]' % env['host_string']):
 			self.prefix = s + ' '
 			return
 		elif s.lower() == 'done.':
@@ -73,11 +73,11 @@ class CompactStdout(object):
 			sys.__stdout__.write('\n')
 
 sys.stdout = CompactStdout()
-env.colorize_errors = True
-env.check_production_requirements = True
+env['colorize_errors'] = True
+env['check_production_requirements'] = True
 
 def check_production_requirements():
-	if env.check_production_requirements:
+	if env.get('check_production_requirements'):
 		# Make sure the current branch is master, otherwise warn the user
 		with hide('everything'), settings(warn_only=True):
 			result = local('git status | head -1', capture=True)
@@ -89,7 +89,7 @@ def check_production_requirements():
 @task
 def f():
 	""" Force the operation by ignoring any requirements and restrictions. """
-	env.check_production_requirements = False
+	env['check_production_requirements'] = False
 
 @task
 def e(name):

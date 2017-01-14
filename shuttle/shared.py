@@ -262,15 +262,16 @@ def set_environment(e):
 		del env['sites']['defaults']
 	# Copy the site name into each of the sites and set the default type
 	for name in env['sites']:
-		env.sites[name]['name'] = name
-		if not env.sites[name].has_key('type'):
-			env.sites[name]['type'] = SiteType.DJANGO
+		env['sites'][name]['name'] = name
+		if not env['sites'][name].has_key('type'):
+			env['sites'][name]['type'] = SiteType.DJANGO
 
 def set_default_environment(e):
 	for arg in sys.argv:
 		if arg.startswith('e:'):
 			return
 	set_environment(environments[e])
+	env['default'] = True
 
 def find_service(name):
 	for service in env['services']:
