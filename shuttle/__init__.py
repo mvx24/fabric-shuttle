@@ -120,6 +120,10 @@ __SSH_CONFIG_MAP = { 'User': 'user', 'Port': 'port', 'HostName': 'hosts', 'Ident
 @task
 def vagrant():
 	""" Use to override the fab environment with information taken from vagrant ssh_config. """
+	# If no other environment is set then use an environment named vagrant
+	if not env.get('default') and environments.has_key('vagrant'):
+		set_default_environment('vagrant')
+	# Force the operation by treating vagrant as always a non-production host
 	f()
 	env['vagrant'] = True
 	with hook('vagrant'):
