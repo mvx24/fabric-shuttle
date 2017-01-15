@@ -8,10 +8,10 @@ from fabric.contrib.files import exists
 
 from .shared import *
 from .deploy import *
-from .hooks import hook
+from .hooks import *
 import x, services
 
-__all__ = ['services', 'environments', 'set_environment', 'set_default_environment', 'SiteType', 'presets', 'e', 's', 'vagrant', 'deploy', 'manage', 'setup', 'install', 'config', 'siteinstall', 'siteconfig', 'restart', 'stop', 'start', 'x']
+__all__ = ['services', 'environments', 'set_environment', 'set_default_environment', 'SiteType', 'presets', 'e', 's', 'vagrant', 'deploy', 'manage', 'setup', 'install', 'config', 'siteinstall', 'siteconfig', 'restart', 'stop', 'start', 'x', 'before', 'after', 'hook']
 
 # TODO: move this to S3 usage only and use in a with statement
 # Python 2.7.9 enables strict SSL cert checking, so S3 buckets with dots will no longer work
