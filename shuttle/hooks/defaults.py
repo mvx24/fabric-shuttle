@@ -12,6 +12,10 @@ def install_paramiko_libs():
 def install_img_libs():
 	apt_get_install('libjpeg-dev', 'libpng-dev', 'libfreetype6-dev')
 
+@before('pip install psycopg2')
+def install_psycopg2_libs():
+	apt_get_install('python-dev', 'libpq-dev', 'postgresql-client')
+
 # Setup image libraries properly
 # http://stackoverflow.com/questions/7648200/pip-install-pil-e-tickets-1-no-jpeg-png-support
 

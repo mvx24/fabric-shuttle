@@ -32,7 +32,7 @@ class hook(object):
 	def __enter__(self):
 		global _hook_depth
 		if not _quiet_hooks:
-			print green('%s>Start %s' % ('-' * _hook_depth, self.hook_name))
+			print bold('%s>Start %s' % ('-' * _hook_depth, self.hook_name))
 		if _before_hooks.has_key(self.hook_name):
 			for func in _before_hooks[self.hook_name]:
 				if func.__doc__:
@@ -48,7 +48,7 @@ class hook(object):
 					print bold(func.__doc__)
 				func(*self.args, **self.kwargs)
 		if not _quiet_hooks:
-			print bold('%s>End %s' % ('-' * _hook_depth, self.hook_name))
+			print green('%s>End %s' % ('-' * _hook_depth, self.hook_name))
 
 class quiet_hook_messages(object):
 	"""Silence hook output down to one message."""

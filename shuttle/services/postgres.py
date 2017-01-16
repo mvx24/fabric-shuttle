@@ -114,7 +114,6 @@ class Postgres(Service):
 				if find_service(self.name) is None:
 					install_postgis()
 			# Install python postgresql support
-			apt_get_install('python-dev', 'postgresql-server-dev-all', 'postgresql-client')
 			pip_install(site, 'psycopg2')
 
 	def site_config(self, site):
