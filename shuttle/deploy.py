@@ -175,7 +175,7 @@ def deploy_webapp():
 		return
 
 	if site['type'] == SiteType.DJANGO:
-		root = get_webapp_root(site)
+		root = get_django_setting(site, 'WEBAPP_ROOT')
 		if not root:
 			return
 		prefix = get_webapp_url(site)
