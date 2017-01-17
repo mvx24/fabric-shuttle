@@ -4,7 +4,7 @@ import subprocess
 import sys
 import time
 
-from fabric.api import env, sudo, run, hide, settings
+from fabric.api import env, sudo, run, hide, settings, local
 from fabric.contrib.files import exists
 
 WWW_USER = 'www-data'
@@ -40,6 +40,16 @@ def blue(msg):
 
 def teal(msg):
 	return '\033[1;36m%s\033[0m' % msg
+
+class cd_local(object):
+	"""Changes the local current working directory."""
+	def __init__(self, nwd):
+		self.cwd = os.getcwd()
+		self.nwd = nwd
+	def __enter__(self):
+		os.chdir(self.nwd)
+	def __exit__(self, *_):
+		os.chdir(self.cwd)
 
 def get_template_directory():
 	return '%s/templates' % os.path.dirname(__file__)
@@ -79,17 +89,41 @@ def get_webapp_taskrunner(webapp_root):
 def build_webapp(webapp_root, task=None):
 	"""Build a web app. Assumes that the webapp_root is a build subdirectory to a parent project with a build file."""
 	parent, task_runner = get_webapp_taskrunner(webapp_root)
-	if task_runner:
+	if not task_runner:
+		return
+	def webapp_cmd(cmd):
+		result = local(cmd)
+		if result.failed:
+			print red('Error running %s!' % cmd)
+			raise UserWarning
+	with cd_local(parent):
+		# Install or update front-end packages
+		if os.path.exists(os.path.join(parent, 'package.json')):
+			if os.path.exists(os.path.join(parent, 'node_modules')):
+				print bold('Updating npm packages ...')
+				webapp_cmd('npm update')
+			else:
+				print bold('Installing npm packages ...')
+				webapp_cmd('npm install')
+		if os.path.exists(os.path.join(parent, 'bower.json')):
+			if os.path.exists(os.path.join(parent, 'bower_components')):
+				print bold('Updating bower packages ...')
+				webapp_cmd('bower update')
+			else:
+				print bold('Installing bower packages ...')
+				webapp_cmd('bower install')
+		if os.path.exists(os.path.join(parent, 'config.js')):
+			if os.path.exists(os.path.join(parent, 'jspm_packages')):
+				print bold('Updating jspm packages ...')
+				webapp_cmd('jspm update')
+			else:
+				print bold('Installing jspm packages ...')
+				webapp_cmd('jspm install')
+		# Run the build task
 		print bold('Building %s ...' % parent)
-		cwd = os.getcwd()
-		os.chdir(parent)
 		if not task:
 			task = 'build'
-		result = subprocess.call([task_runner, task])
-		os.chdir(cwd)
-		if result != 0:
-			print red('Error: build failed!')
-			raise UserWarning
+		webapp_cmd('%s %s' % (task_runner, task))
 
 _apt_get_install_set = set()
 
