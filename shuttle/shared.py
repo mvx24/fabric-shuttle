@@ -86,11 +86,19 @@ def get_webapp_taskrunner(webapp_root):
 		task_runner = 'jekyll'
 	return parent, task_runner
 
+_build_webapp_set = set()
+
 def build_webapp(webapp_root, task=None):
 	"""Build a web app. Assumes that the webapp_root is a build subdirectory to a parent project with a build file."""
 	parent, task_runner = get_webapp_taskrunner(webapp_root)
 	if not task_runner:
 		return
+	if not task:
+		task = 'build'
+	build_cmd = ' '.join((parent, task_runner, task))
+	if build_cmd in _build_webapp_set:
+		return
+	_build_webapp_set.add(build_cmd)
 	def webapp_cmd(cmd):
 		result = local(cmd)
 		if result.failed:
@@ -121,8 +129,6 @@ def build_webapp(webapp_root, task=None):
 				webapp_cmd('jspm install')
 		# Run the build task
 		print bold('Building %s ...' % parent)
-		if not task:
-			task = 'build'
 		webapp_cmd('%s %s' % (task_runner, task))
 
 _apt_get_install_set = set()
