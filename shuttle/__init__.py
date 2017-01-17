@@ -245,7 +245,7 @@ def siteinstall(*service_names):
 			pip_install(None, 'virtualenv')
 	# Install packages and each service for each site
 	for s in sites:
-		print teal(s['name'])
+		print teal(s['name'] + ' siteinstall')
 		if s.get('packages'):
 			apt_get_install(*s['packages'])
 		pip_install(s)
@@ -260,7 +260,7 @@ def siteconfig(*service_names):
 	site = env.get('site')
 	sites = env['sites'].values() if site is None else [site]
 	for s in sites:
-		print teal(s['name'])
+		print teal(s['name'] + ' siteconfig')
 		for service in s.get('services', []):
 			if not service_names or service.name in service_names:
 				service.site_config(s)
