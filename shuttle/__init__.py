@@ -153,6 +153,7 @@ def deploy():
 		sites = [site for site in sites if site['type'] == SiteType.DJANGO]
 		if sites:
 			for site in sites:
+				# Run local tests
 				# TODO: support local virtualenv for testing
 				if site.has_key('local_tests') and site['local_tests']:
 					local('python manage.py test %s --settings %s' % (' '.join(site['local_tests']), site['settings_module']))
@@ -167,13 +168,20 @@ def deploy():
 					for site in sites:
 						django_append_settings(site)
 						python = get_python_interpreter(site)
+						# Migrate the database
 						# Only syncdb for versions below 1.7
 						#sudo('python manage.py syncdb --settings %s --noinput' % site['settings_module'])
 						sudo('%s manage.py migrate --settings %s --noinput' % (python, site['settings_module']))
+						# Collect static files
 						# The collectstatic with --clear with raise an exception and fail if the static directory does not already exist, so only clear if it exists
 						clear = '--clear' if exists(get_static_root(site)) else ''
 						sudo('%s manage.py collectstatic --settings %s --noinput %s' % (python, site['settings_module'], clear))
 						chown(get_static_root(site), WWW_USER, WWW_USER)
+						# Apply fixtures
+						fixtures = site.get('fixtures', [])
+						if fixtures:
+							sudo('%s manage.py loaddata --settings %s %s' % (python, site['settings_module'], ' '.join(fixtures)))
+						# Run remote tests
 						if site.has_key('remote_tests') and site['remote_tests']:
 							with settings(warn_only=True):
 								sudo('%s manage.py test %s --settings %s ' % (python, ' '.join(site['remote_tests']), site['settings_module']))
