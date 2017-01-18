@@ -41,6 +41,20 @@ def blue(msg):
 def teal(msg):
 	return '\033[1;36m%s\033[0m' % msg
 
+def split_package(package):
+	"""Split a package into the name and version components."""
+	name = package
+	version = ''
+	for c in ('!', '<', '>', '=', '~', '^'):
+		if package.find(c) != -1:
+			n, v = package.split(c, 1)
+			n = n.strip()
+			v = c + v.strip()
+			if len(v) > len(version):
+				name = n
+				version = v
+	return name, version
+
 class cd_local(object):
 	"""Changes the local current working directory."""
 	def __init__(self, nwd):
@@ -255,6 +269,7 @@ def pip_install(site=None, *packages):
 	pip = get_pip_installer(site)
 	# Install each listed package
 	for package in packages:
+		name, version = split_package(package)
 		if site is None:
 			if package in _pip_install_set:
 				continue
@@ -262,16 +277,15 @@ def pip_install(site=None, *packages):
 		if package.startswith('git:') or package.startswith('git+'):
 			apt_get_install('git')
 		with hide('everything'), settings(warn_only=True):
-			result = run('%s show %s' % (pip, package))
+			result = run('%s show "%s"' % (pip, name))
 		# Check the output of pip show, it doesn't return non-zero on not finding the package, just no output
 		if not len(result.strip()):
-			# TODO: separate the version from the package for the hook
 			from hooks import hook
-			with hook('pip install %s' % package):
+			with hook('pip install %s' % name):
 				# sudo with -H for setting the home directory for root so pip has proper permissions to cache
 				run('sudo -H %s install "%s"' % (pip, package))
 		else:
-			print '%s already installed.' % package
+			print '%s already installed.' % name
 
 def pip_update():
 	# WARNING: Upgrading pip to the latest version will cause urllib3 warnings and errors to start occuring on Ubuntu 14

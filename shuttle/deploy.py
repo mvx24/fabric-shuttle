@@ -36,7 +36,7 @@ def _django_get_excluded(sites):
 	http://git-scm.com/docs/gitignore
 	http://ss64.com/bash/rsync.html
 	"""
-	excluded = ['.*', '*.pyc', '*.db']
+	excluded = ['.*', '*.pyc', '*.db', 'Vagrantfile']
 	# Exclude anything additionally specified in the environment
 	if env.has_key('excluded_files') and env['excluded_files']:
 		excluded.extend(env['excluded_files'])
