@@ -80,6 +80,31 @@ def chown(paths, username='root', group='root'):
 	for path in paths:
 		sudo('chown -R %s:%s %s' % (username, group, path))
 
+def find_static(site, name):
+	"""Finds a static file in a Django project with appname/static and STATICFILES_DIRS without resorting to importing the Django finder."""
+	static_dirs = get_django_setting(site, 'STATICFILES_DIRS')
+	if static_dirs:
+		for path in static_dirs:
+			if isinstance(path, (list, tuple)):
+				path = path[1]
+			path = os.path.join(path, name)
+			if os.path.exists(path):
+				return path
+	apps = get_django_setting(site, 'INSTALLED_APPS')
+	import imp
+	for app in apps:
+		app = app.split('.', 1)
+		try:
+			path = imp.find_module(app[0])[1]
+		except:
+			continue
+		if len(app) > 1:
+			path = os.path.join(path, app[1].replace('.', '/'))
+		path = os.path.join(path, 'static', name)
+		if os.path.exists(path):
+			return path
+	return None
+
 def fix_absolute_path(path):
 	"""If settings spill over from development for a path inside the project then translate it to the project directory on the server."""
 	if path.startswith(os.path.abspath('.')):

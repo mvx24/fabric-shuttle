@@ -51,10 +51,8 @@ def _django_get_excluded(sites):
 					excluded.append(line)
 	# Exlude all of the webapp's node_modules and bower_components
 	for site in sites:
-		module = import_module(site['settings_module'])
-		os.environ.setdefault('DJANGO_SETTINGS_MODULE', site['settings_module'])
-		if hasattr(module, 'WEBAPP_ROOT'):
-			webapp_root = module.WEBAPP_ROOT
+		webapp_root = get_django_setting(site, 'WEBAPP_ROOT')
+		if webapp_root:
 			try:
 				parent, task_runner = get_webapp_taskrunner(webapp_root)
 				if task_runner:
@@ -106,15 +104,13 @@ def django_sync(sites):
 
 			# Copy any additional webapp files
 			if site.has_key('webapp') and site['webapp'].get('files'):
-				from django.contrib.staticfiles import finders
 				webapp_root = get_webapp_root(site)
 				if webapp_root:
 					for filename in site['webapp']['files']:
-						result = finders.find(filename)
+						result = find_static(site, filename)
 						if not result:
 							print red('Error: Could not find static file %s.' % filename)
 							return
-						result = result[0] if isinstance(result, (list, tuple)) else result
 						chown(put(result, os.path.join(webapp_root, filename), use_sudo=True, mode=0644), WWW_USER, WWW_USER)
 
 		for site in sites:
@@ -199,13 +195,11 @@ def deploy_webapp():
 	# Upload the static files found in other directories with the static file finder
 	if site['webapp'].get('files'):
 		if site['type'] == SiteType.DJANGO:
-			from django.contrib.staticfiles import finders
 			for filename in site['webapp']['files']:
-				result = finders.find(filename)
+				result = find_static(site, filename)
 				if not result:
 					print red('Error: Could not find static file %s.' % filename)
 					return
-				result = result[0] if isinstance(result, (list, tuple)) else result
 				upload_to_s3(site, site['webapp']['bucket'], result[:-len(filename)], (filename,), prefix=prefix)
 		else:
 			if type(site['webapp']['files']) is dict:

@@ -2,11 +2,11 @@ import os
 import tempfile
 import urlparse
 
-from fabric.api import put, sudo, hide, settings
+from fabric.api import put, sudo, hide, settings, env
 from fabric.contrib.files import upload_template
 
 from .service import Service
-from ..shared import apt_get_install, get_template, fix_absolute_path, SiteType, chown
+from ..shared import apt_get_install, get_template, fix_absolute_path, SiteType, chown, find_static
 from ..shared import get_django_setting, get_static_root, get_static_url, get_media_root, get_media_url, get_webapp_root, get_webapp_url
 from ..hooks import hook
 
@@ -71,7 +71,7 @@ class Nginx(Service):
 				'default_str': ' default_server' if self.settings.get('default') else '',
 				'app_location': '/',
 				'webapp_location': '',
-				'webapp_404': '',
+				'error_page_str': '',
 			}
 			if self.settings.has_key('log_level'):
 				context['log_level'] = ' ' + self.settings['log_level']
@@ -85,6 +85,11 @@ class Nginx(Service):
 				context['location_settings_str'] = '\n\t\t'.join(['%s %s;' % setting for setting in self.settings['location_settings']])
 			else:
 				context['location_settings_str'] = ''
+
+			if self.settings.has_key('server_settings') and isinstance(self.settings['server_settings'], (list, tuple)):
+				context['server_settings_str'] = '\n\t\t'.join(['%s %s;' % setting for setting in self.settings['server_settings']])
+			else:
+				context['server_settings_str'] = ''
 
 			if site['type'] == SiteType.DJANGO:
 				# Django site setup
@@ -119,7 +124,6 @@ class Nginx(Service):
 				if webapp_root:
 					webapp_url = _slash_wrap(get_webapp_url(site))
 					webapp_index = get_django_setting(site, 'WEBAPP_INDEX') or 'index.html'
-					webapp_root_local = get_django_setting(site, 'WEBAPP_ROOT')
 					if webapp_url == '/':
 						context['app_location'] = '@%s-app' % site['name'].replace('.', '-')
 						context['webapp_location'] = _NGINX_WEBAPP_LOCATION % (webapp_url, _slash_append(webapp_root), webapp_index, context['app_location'])
@@ -128,9 +132,12 @@ class Nginx(Service):
 						context['webapp_location'] = _NGINX_WEBAPP_LOCATION % (webapp_url, _slash_append(webapp_root), webapp_index, '=404')
 					# Configure the error pages if present
 					error_pages = []
-					for status_code in (400, 401, 403, 404, 500):
-						if os.path.isfile(os.path.join(webapp_root_local, '%d.html' % status_code)):
-							error_pages.append('error_page %d %s%d.html;' % (status_code, webapp_url, status_code))
+					if not env.get('vagrant'):
+						for status_code in (400, 401, 403, 404, 500):
+							static_name = '%d.html' % status_code
+							result = find_static(site, static_name)
+							if result:
+								error_pages.append('error_page %d %s;' % (status_code, os.path.join(static_url, static_name)))
 					context['error_page_str'] = '\n\t'.join(error_pages)
 			else:
 				# Not a django site
