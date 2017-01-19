@@ -119,17 +119,19 @@ class Nginx(Service):
 				if webapp_root:
 					webapp_url = _slash_wrap(get_webapp_url(site))
 					webapp_index = get_django_setting(site, 'WEBAPP_INDEX') or 'index.html'
+					webapp_root_local = get_django_setting(site, 'WEBAPP_ROOT')
 					if webapp_url == '/':
 						context['app_location'] = '@%s-app' % site['name'].replace('.', '-')
 						context['webapp_location'] = _NGINX_WEBAPP_LOCATION % (webapp_url, _slash_append(webapp_root), webapp_index, context['app_location'])
 					else:
 						context['app_location'] = '/'
 						context['webapp_location'] = _NGINX_WEBAPP_LOCATION % (webapp_url, _slash_append(webapp_root), webapp_index, '=404')
-					# Configure the 404 file if available
-					if os.path.isfile(os.path.join(get_django_setting(site, 'WEBAPP_ROOT'), '404.html')):
-						context['webapp_404'] = 'error_page 404 %s404.html;' % webapp_url
-					else:
-						context['webapp_404'] = ''
+					# Configure the error pages if present
+					error_pages = []
+					for status_code in (400, 401, 403, 404, 500):
+						if os.path.isfile(os.path.join(webapp_root_local, '%d.html' % status_code)):
+							error_pages.append('error_page %d %s%d.html;' % (status_code, webapp_url, status_code))
+					context['error_page_str'] = '\n\t'.join(error_pages)
 			else:
 				# Not a django site
 				context['allowed_hosts'] = site['name']
