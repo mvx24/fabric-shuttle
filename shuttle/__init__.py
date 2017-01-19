@@ -126,6 +126,7 @@ def vagrant():
 	# Force the operation by treating vagrant as always a non-production host
 	f()
 	env['vagrant'] = True
+	env['use_ssh_config'] = False
 	with hook('vagrant'):
 		with hide('everything'), settings(warn_only=True):
 			result = local('vagrant ssh-config', capture=True)
