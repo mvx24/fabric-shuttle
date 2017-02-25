@@ -51,10 +51,10 @@ class Nginx(Service):
 			if self.settings:
 				with tempfile.NamedTemporaryFile('w') as f:
 					for section in self.settings:
-						if type(self.settings[section]) is dict:
+						if isinstance(self.settings[section], dict):
 							f.write('%s {\n' % section)
 							for setting in self.settings[section]:
-								f.write('%s %s;\n' % (setting, self.settings[section][setting]))
+								f.write('\t%s %s;\n' % (setting, self.settings[section][setting]))
 							f.write('}\n')
 						elif type(self.settings[section]) is bool:
 							f.write('%s %s;\n' % (section, 'on' if self.settings[section] else 'off'))
