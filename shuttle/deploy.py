@@ -158,7 +158,7 @@ def django_append_settings(site):
 		site_settings = service.get_site_settings(site)
 		if site_settings:
 			txt += '\n' + '\n'.join(["%s = '%s'" % item for item in site_settings.items()]) + '\n'
-	append(filename, txt.replace('\t', ''))
+	append(filename, txt.replace('\t', ''), use_sudo=True)
 
 def deploy_webapp():
 	"""Deploy a webapp to S3 with the prefix of WEBAPP_URL. If site is not specified, then the command will be run on all sites."""
