@@ -117,14 +117,14 @@ class Snowplow(Service):
 				chain.log_name = self.name
 			loader_skip = ','.join(self.settings.get('loader_skip', _DEFAULT_SETTINGS['loader_skip']))
 			if loader_skip:
-				loader_skip = '--skip ' + loader_skip
+				loader_skip = ' --skip ' + loader_skip
 			loader_job = CronJob(_LOADER_COMMAND + loader_skip, log_name=self.name, chain=chain)
 			runner_skip = ','.join(self.settings.get('runner_skip', _DEFAULT_SETTINGS['runner_skip']))
 			if runner_skip:
-				runner_skip = '--skip ' + runner_skip
+				runner_skip = ' --skip ' + runner_skip
 			runner_enrichments = self.settings.get('enrichments', _DEFAULT_SETTINGS['enrichments'])
 			if runner_enrichments:
-				runner_enrichments = '--enrichments ' + runner_enrichments
+				runner_enrichments = ' --enrichments ' + runner_enrichments
 			runner_job = CronJob(_RUNNER_COMMAND + runner_enrichments + runner_skip, log_name=self.name, schedule=self.settings.get('schedule', _DEFAULT_SETTINGS['schedule']), chain=loader_job)
 
 			# Configure cron with the first site with the Snowplow service or just the active or first site if no Snowplow service is found
