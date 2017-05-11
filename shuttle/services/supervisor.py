@@ -1,7 +1,7 @@
 import tempfile
 
 from fabric.api import put, sudo
-from fabric.contrib.files import append, sed
+from fabric.contrib.files import append, sed, exists
 
 from .service import Service
 from ..formats import format_ini
@@ -30,6 +30,9 @@ class Supervisor(Service):
 			# To run automatically at startup with ubuntu and other systems:
 			# http://serverfault.com/questions/96499/how-to-automatically-start-supervisord-on-linux-ubuntu
 			chown(put(get_template('supervisor-upstart.conf'), '/etc/init/supervisor.conf', use_sudo=True, mode=0644))
+			# https://wiki.ubuntu.com/SystemdForUpstartUsers
+			if exists('/lib/systemd/system', use_sudo=True):
+				chown(put(get_template('supervisor-systemd.conf'), '/lib/systemd/system/supervisor.service', use_sudo=True, mode=0644))
 			# Start the default configuration, with logging and pid file location changed to be more like nginx and other services
 			sudo('mkdir -p /etc/supervisor')
 			sudo('mkdir -p /var/log/supervisor')
