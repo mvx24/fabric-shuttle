@@ -302,9 +302,9 @@ def pip_install(site=None, *packages):
 		if package.startswith('git:') or package.startswith('git+'):
 			apt_get_install('git')
 		with hide('everything'), settings(warn_only=True):
-			result = run('%s show "%s"' % (pip, name))
-		# Check the output of pip show, it doesn't return non-zero on not finding the package, just no output
-		if not len(result.strip()):
+			result = run('%s show "%s" 2>/dev/null' % (pip, name))
+		# Check the output of pip show, it might not return non-zero on not finding the package, just no output
+		if result.failed or not len(result.strip()):
 			from hooks import hook
 			with hook('pip install %s' % name):
 				# sudo with -H for setting the home directory for root so pip has proper permissions to cache
