@@ -12,7 +12,7 @@ from .cron import add_crontab_section, remove_crontab_section, CronSchedule, Cro
 from .postgres import Postgres, POSTGRES_USER
 from .service import Service
 from ..hooks import hook
-from ..shared import apt_get_install, pip_install, red, chown, find_service
+from ..shared import apt_get_install, pip_install, red, chown, find_service, SiteType
 
 _PACKAGE_URL = 'http://dl.bintray.com/snowplow/snowplow-generic/snowplow_emr_r77_great_auk.zip'
 _MASTER_URL = 'https://codeload.github.com/snowplow/snowplow/zip/master'
@@ -140,5 +140,9 @@ class Snowplow(Service):
 					if found:
 						snowplow_site = site
 						break
+			# Because of using a site before siteinstall setup virtualenv here for proper Django management commands
+			if snowplow_site['type'] == SiteType.DJANGO:
+				apt_get_install('python-pip')
+				pip_install(None, 'virtualenv')
 			remove_crontab_section(_CRONTAB_USER, _CRONTAB_SECTION)
 			add_crontab_section(_CRONTAB_USER, _CRONTAB_SECTION, runner_job, snowplow_site)
