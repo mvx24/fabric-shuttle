@@ -127,6 +127,7 @@ def vagrant():
 	f()
 	env['vagrant'] = True
 	env['use_ssh_config'] = False
+	env['disable_known_hosts'] = True
 	with hook('vagrant'):
 		with hide('everything'), settings(warn_only=True):
 			result = local('vagrant ssh-config', capture=True)
