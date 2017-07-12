@@ -170,6 +170,8 @@ def deploy():
 					for site in sites:
 						django_append_settings(site)
 						python = get_python_interpreter(site)
+						# Install/Update packages from requirements
+						pip_install(site)
 						# Migrate the database
 						# Only syncdb for versions below 1.7
 						#sudo('python manage.py syncdb --settings %s --noinput' % site['settings_module'])

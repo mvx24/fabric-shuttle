@@ -209,6 +209,7 @@ def get_manage_directory():
 def get_requirements_packages():
 	try:
 		with open('requirements.txt') as f:
+			# TODO: remove blank lines
 			return tuple(map(lambda package: package.strip(), f.readlines()))
 	except:
 		return tuple()
@@ -301,16 +302,18 @@ def pip_install(site=None, *packages):
 			_pip_install_set.add(package)
 		if package.startswith('git:') or package.startswith('git+'):
 			apt_get_install('git')
-		with hide('everything'), settings(warn_only=True):
-			result = run('%s show "%s" 2>/dev/null' % (pip, name))
-		# Check the output of pip show, it might not return non-zero on not finding the package, just no output
-		if result.failed or not len(result.strip()):
-			from hooks import hook
-			with hook('pip install %s' % name):
-				# sudo with -H for setting the home directory for root so pip has proper permissions to cache
-				run('sudo -H %s install "%s"' % (pip, package))
-		else:
-			print '%s already installed.' % name
+		from hooks import hook
+		with hook('pip install %s' % name):
+			# sudo with -H for setting the home directory for root so pip has proper permissions to cache
+			run('sudo -H %s install "%s"' % (pip, package))
+
+def pip_check_install(site=None, package):
+	pip = get_pip_installer(site)
+	name, version = split_package(package)
+	with hide('everything'), settings(warn_only=True):
+		result = run('%s show "%s" 2>/dev/null' % (pip, name))
+	# Check the output of pip show, it might not return non-zero on not finding the package, just no output
+	return not (result.failed or not len(result.strip()))
 
 def pip_update():
 	# WARNING: Upgrading pip to the latest version will cause urllib3 warnings and errors to start occuring on Ubuntu 14
