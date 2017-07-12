@@ -307,7 +307,7 @@ def pip_install(site=None, *packages):
 			# sudo with -H for setting the home directory for root so pip has proper permissions to cache
 			run('sudo -H %s install "%s"' % (pip, package))
 
-def pip_check_install(site=None, package):
+def pip_check_install(package, site=None):
 	pip = get_pip_installer(site)
 	name, version = split_package(package)
 	with hide('everything'), settings(warn_only=True):
