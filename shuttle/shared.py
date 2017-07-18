@@ -80,6 +80,16 @@ def chown(paths, username='root', group='root'):
 	for path in paths:
 		sudo('chown -R %s:%s %s' % (username, group, path))
 
+def compare_files(local_path, remote_path):
+	with hide('everything'), settings(warn_only=True):
+		local_result = local('cksum ' + local_path, capture=True)
+		remote_result = sudo('cksum ' + remote_path)
+		if local_result.succeeded and remote_result.succeeded:
+			# cksum output is: <sum> <bytes> <path> e.g. 944758468 222 requirements.txt
+			# compare only the first two because path could be different
+			return local_result[:local_result.rfind(' ')] == remote_result[:remote_result.rfind(' ')]
+	return False
+
 def find_static(site, name):
 	"""Finds a static file in a Django project with appname/static and STATICFILES_DIRS without resorting to importing the Django finder."""
 	static_dirs = get_django_setting(site, 'STATICFILES_DIRS')
