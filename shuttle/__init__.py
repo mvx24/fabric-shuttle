@@ -164,6 +164,7 @@ def deploy():
 			supervisor = find_service('supervisor')
 			uwsgi.stop()
 			nginx.stop()
+			updated_requirements = not compare_files('requirements.txt',  os.path.join(get_project_directory(), 'requirements.txt'))
 			django_sync(sites)
 			with own_project():
 				with cd(get_project_directory()):
@@ -171,7 +172,7 @@ def deploy():
 						django_append_settings(site)
 						python = get_python_interpreter(site)
 						# Install/Update packages from requirements
-						if not compare_files('requirements.txt',  os.path.join(get_project_directory(), 'requirements.txt')):
+						if updated_requirements:
 							pip_install(site)
 						# Migrate the database
 						# Only syncdb for versions below 1.7
