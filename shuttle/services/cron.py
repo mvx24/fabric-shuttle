@@ -120,7 +120,9 @@ class Cron(Service):
 			# Setup logging directories and logrotate.d
 			for job in jobs:
 				if job.log_name:
-					sudo('mkdir -p /var/log/%s' % job.log_name)
+					log_dir = '/var/log/' + job.log_name
+					sudo('mkdir -p ' + log_dir)
+					chown(log_dir, WWW_USER, WWW_USER)
 					if job.log_rotate:
 						rotate_conf = StringIO.StringIO('/var/log/%s/%s.log {\n    %s\n}\n' % (job.log_name, job.log_name, '\n    '.join(job.log_rotate)))
 						chown(put(rotate_conf, '/etc/logrotate.d/%s' % job.log_name, use_sudo=True, mode=0644))
