@@ -255,7 +255,7 @@ def siteinstall(*service_names):
 	site_types = set([s['type'] for s in sites])
 	for t in site_types:
 		if t == SiteType.DJANGO:
-			apt_get_install('python-pip', 'python-dev', 'sqlite3')
+			apt_get_install('python-pip', 'python-dev', 'sqlite3', 'gettext')
 			pip_install(None, 'virtualenv')
 	# Install packages and each service for each site
 	for s in sites:
