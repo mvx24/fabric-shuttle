@@ -3,9 +3,10 @@ import tempfile
 from fabric.api import put, sudo
 from fabric.contrib.files import append
 
-from .service import Service
-from ..hooks import hook
-from ..shared import apt_get_install, pip_install, chown
+from shuttle.services.service import Service
+from shuttle.hooks import hook
+from shuttle.shared import apt_get_install, pip_install, chown
+
 
 class Redis(Service):
     name = 'redis'

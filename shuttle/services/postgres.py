@@ -4,10 +4,18 @@ from fabric.api import run, sudo, cd, put, env, settings, hide
 from fabric.context_managers import shell_env
 from fabric.contrib.files import append, exists
 
-from .postgis import *
-from .service import Service
-from ..hooks import hook
-from ..shared import apt_get_install, pip_install, find_service, chown, get_django_setting, SiteType
+from shuttle.services.postgis import *
+from shuttle.services.service import Service
+from shuttle.hooks import hook
+from shuttle.shared import (
+    apt_get_install,
+    pip_install,
+    find_service,
+    chown,
+    get_django_setting,
+    SiteType,
+)
+
 
 POSTGRES_USER = 'postgres'
 POSTGRES_GROUP = 'postgres'
@@ -21,10 +29,12 @@ _CONF_DIR = '%s/conf.d' % _MAIN_DIR
 _EXCLUDE_SETTINGS = ['postgis', 'hba', 'ident']
 # NOTE: If hba is set to True instead of a list, then client authentication for the current local host is added
 
+
 def _pg_quote_config(key, value):
     if (isinstance(value, (str, unicode)) and value not in ('on', 'off') and not value[0].isdigit()) or key == 'listen_addresses':
         return "'%s'" % value
     return value
+
 
 def _get_pg_env(site):
     database = get_django_setting(site, 'DATABASES')['default']
@@ -35,6 +45,7 @@ def _get_pg_env(site):
         'PGPASSWORD': database['PASSWORD'],
         'PGDATABASE': database['NAME']
     }
+
 
 class Postgres(Service):
     name = 'postgres'

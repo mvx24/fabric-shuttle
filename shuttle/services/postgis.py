@@ -1,6 +1,7 @@
 from fabric.api import run, sudo, cd
 
-from ..shared import apt_get_install, get_django_setting
+from shuttle.shared import apt_get_install, get_django_setting
+
 
 _GEOS_URL = 'http://archive.ubuntu.com/ubuntu/pool/universe/g/geos/geos_3.3.3.orig.tar.gz'
 _GEOS_DIR = 'geos-3.3.3'
@@ -11,6 +12,7 @@ _GDAL_URL = 'http://download.osgeo.org/gdal/gdal-1.9.2.tar.gz'
 _GDAL_DIR = 'gdal-1.9.2'
 _POSTGIS_URL = 'http://download.osgeo.org/postgis/source/postgis-2.0.3.tar.gz'
 _POSTGIS_DIR = 'postgis-2.0.3'
+
 
 def install_postgis():
     apt_get_install('postgresql-server-dev-all', 'libpq-dev', 'libxml2', 'libxml2-dev')
@@ -50,6 +52,7 @@ def install_postgis():
         run('./configure')
         run('make')
         sudo('make install')
+
 
 def site_config_postgis(postgres, site):
     database = get_django_setting(site, 'DATABASES')['default']

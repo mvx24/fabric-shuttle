@@ -1,6 +1,7 @@
 from fabric.api import sudo
 
-from ..hooks import hook
+from shuttle.hooks import hook
+
 
 class Service(object):
 

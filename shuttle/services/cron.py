@@ -3,11 +3,19 @@ import StringIO
 from fabric.api import sudo, put
 from fabric.contrib.files import append
 
-from .service import Service
-from ..hooks import hook
-from ..shared import WWW_USER, get_python_interpreter, get_project_directory, SiteType, chown
+from shuttle.services.service import Service
+from shuttle.hooks import hook
+from shuttle.shared import (
+    WWW_USER,
+    get_python_interpreter,
+    get_project_directory,
+    SiteType,
+    chown,
+)
+
 
 class CronSchedule(object):
+
     def __init__(self, minute='0', hour='0', day_of_month='*', month='*', day_of_week='*'):
         self.minute = str(minute)
         self.hour = str(hour)
@@ -18,7 +26,9 @@ class CronSchedule(object):
     def __str__(self):
         return ' '.join((self.minute, self.hour, self.day_of_month, self.month, self.day_of_week))
 
+
 class CronJob(object):
+
     def __init__(self, command=None, **kwargs):
         self.schedule = CronSchedule()
         self.command = command
@@ -53,14 +63,18 @@ class CronJob(object):
             components.append(str(self.chain.get_cron_entry(site)))
         return ' '.join(components)
 
+
 class ManagementJob(CronJob):
+
     def __init__(self, management_command, **kwargs):
         kwargs['management_command'] = management_command
         super(ManagementJob, self).__init__(**kwargs)
 
+
 def read_crontab(user):
     result = sudo('crontab -u %s -l' % user, warn_only=True)
     return result.splitlines() if result.succeeded else []
+
 
 def write_crontab(user, lines):
     if lines:
@@ -73,6 +87,7 @@ def write_crontab(user, lines):
         sudo('rm ' + crontab_file)
     else:
         sudo('crontab -u %s -r' % user, warn_only=True)
+
 
 def add_crontab_section(user, section_name, jobs, site):
     if not jobs:
@@ -88,6 +103,7 @@ def add_crontab_section(user, section_name, jobs, site):
     lines.append(end)
     write_crontab(user, lines)
 
+
 def remove_crontab_section(user, section_name):
     lines = read_crontab(user)
     start = '# start %s' % section_name
@@ -100,6 +116,7 @@ def remove_crontab_section(user, section_name):
     except:
         pass
     write_crontab(user, lines)
+
 
 class Cron(Service):
     name = 'cron'

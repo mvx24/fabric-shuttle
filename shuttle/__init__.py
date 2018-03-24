@@ -6,12 +6,38 @@ import sys
 from fabric.api import task, run, sudo, put, cd, env, hide, settings, local
 from fabric.contrib.files import exists
 
-from .shared import *
-from .deploy import *
-from .hooks import *
-import x, services
+from shuttle.shared import *
+from shuttle.deploy import *
+from shuttle.hooks import *
+from shuttle import x, services
 
-__all__ = ['services', 'environments', 'set_environment', 'set_default_environment', 'SiteType', 'presets', 'e', 's', 'vagrant', 'deploy', 'manage', 'setup', 'install', 'config', 'siteinstall', 'siteconfig', 'restart', 'stop', 'start', 'x', 'before', 'after', 'hook']
+
+__all__ = [
+    'services',
+    'environments',
+    'set_environment',
+    'set_default_environment',
+    'SiteType',
+    'presets',
+    'e',
+    's',
+    'vagrant',
+    'deploy',
+    'manage',
+    'setup',
+    'install',
+    'config',
+    'siteinstall',
+    'siteconfig',
+    'restart',
+    'stop',
+    'start',
+    'x',
+    'before',
+    'after',
+    'hook',
+]
+
 
 # TODO: move this to S3 usage only and use in a with statement
 # Python 2.7.9 enables strict SSL cert checking, so S3 buckets with dots will no longer work
@@ -27,18 +53,24 @@ else:
     # Handle target environment that doesn't support HTTPS verification
     ssl._create_default_https_context = _create_unverified_https_context
 
+
 # Add the project path to sys.path, so that shuttle can import from a site's settings_modules
 # Will work for both a fabfile directory or file
 sys.path.append(os.path.dirname(env['real_fabfile'].rstrip('/')))
 
+
 class CompactStdout(object):
+
     def __init__(self):
         self.prefix = None
         self.in_percent = False
+
     def isatty(self):
         return sys.__stdout__.isatty()
+
     def flush(self):
         sys.__stdout__.flush()
+
     def write(self, s):
         # Remove all the newlines and before adding them back in, effectively removing empty lines
         if not s:
@@ -72,9 +104,11 @@ class CompactStdout(object):
             sys.__stdout__.write(s)
             sys.__stdout__.write('\n')
 
+
 sys.stdout = CompactStdout()
 env['colorize_errors'] = True
 env['check_production_requirements'] = True
+
 
 def check_production_requirements():
     if env.get('check_production_requirements'):
@@ -86,10 +120,12 @@ def check_production_requirements():
             if not 'yes'.startswith(answer.lower()):
                 exit(0)
 
+
 @task
 def f():
     """ Force the operation by ignoring any requirements and restrictions. """
     env['check_production_requirements'] = False
+
 
 @task
 def e(name):
@@ -100,6 +136,7 @@ def e(name):
         set_environment(environments[name])
     else:
         print "Error: Unknown environment specified."
+
 
 @task
 def s(name):
@@ -114,8 +151,10 @@ def s(name):
         exit(1)
     env['site'] = env['sites'][name]
 
+
 # Supported vars: http://docs.fabfile.org/en/1.4.0/usage/execution.html#ssh-config
 __SSH_CONFIG_MAP = { 'User': 'user', 'Port': 'port', 'HostName': 'hosts', 'IdentityFile': 'key_filename', 'ForwardAgent': 'forward_agent' }
+
 
 @task
 def vagrant():
@@ -141,6 +180,7 @@ def vagrant():
                 env[__SSH_CONFIG_MAP[key]] = value.strip('"')
         if type(env['hosts']) is str:
             env['hosts'] = [env['hosts']]
+
 
 @task
 def deploy():
@@ -200,6 +240,7 @@ def deploy():
             if supervisor:
                 supervisor.restart()
 
+
 @task
 def manage(*args):
     """ Run a management command using the supplied arguments. If site is not specified command will be run on all sites. """
@@ -216,7 +257,9 @@ def manage(*args):
                 with cd(project_dir):
                     sudo('%s manage.py %s --settings %s' % (python, ' '.join(args), site['settings_module']), user=WWW_USER)
 
+
 # Service tasks
+
 
 @task
 def setup(*service_names):
@@ -228,6 +271,7 @@ def setup(*service_names):
     siteinstall(*service_names)
     siteconfig(*service_names)
 
+
 @task
 def install(*service_names):
     """ Install services on the server. """
@@ -238,6 +282,7 @@ def install(*service_names):
         if not service_names or service.name in service_names:
             service.install()
 
+
 @task
 def config(*service_names):
     """ Configure services on the server. """
@@ -245,6 +290,7 @@ def config(*service_names):
     for service in env['services']:
         if not service_names or service.name in service_names:
             service.config()
+
 
 @task
 def siteinstall(*service_names):
@@ -267,6 +313,7 @@ def siteinstall(*service_names):
             if not service_names or service.name in service_names:
                 service.site_install(s)
 
+
 @task
 def siteconfig(*service_names):
     """ Configure the services for one or all sites. """
@@ -279,6 +326,7 @@ def siteconfig(*service_names):
             if not service_names or service.name in service_names:
                 service.site_config(s)
 
+
 @task
 def restart(*service_names):
     """ Restart one or more services. """
@@ -288,6 +336,7 @@ def restart(*service_names):
             service.restart()
         else:
             print red('No such service: %s' % name)
+
 
 @task
 def start(*service_names):
@@ -299,6 +348,7 @@ def start(*service_names):
         else:
             print red('No such service: %s' % name)
 
+
 @task
 def stop(*service_names):
     """ Stop one or more services. """
@@ -309,7 +359,9 @@ def stop(*service_names):
         else:
             print red('No such service: %s' % name)
 
+
 # x commands
+
 
 X_COMMAND_MAP = {
     'e': e,
@@ -324,8 +376,9 @@ X_COMMAND_MAP = {
     'exports': x.exports,
     'archive': x.archive,
     'reboot': x.reboot,
-    'runwebapp': x.run_webapp
+    'runwebapp': x.run_webapp,
 }
+
 
 @task
 def x(command=None, *args):

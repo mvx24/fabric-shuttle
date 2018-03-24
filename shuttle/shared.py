@@ -7,10 +7,13 @@ import time
 from fabric.api import env, sudo, run, hide, settings, local
 from fabric.contrib.files import exists
 
+
 WWW_USER = 'www-data'
+
 
 # Dictionary of environments set from the fab file.
 environments = {}
+
 
 class SiteType:
     DJANGO = 1
@@ -19,11 +22,13 @@ class SiteType:
     SCGI = 4
     NGINX = 5
 
+
 presets = {
     'GZIP_CONTENT_TYPES': ('text/html', 'text/css','application/javascript','application/x-javascript', 'image/svg+xml'),
     'NO_CACHE': 'no-cache',
-    'PERMANENT_CACHE': 'max-age=315360000'
+    'PERMANENT_CACHE': 'max-age=315360000',
 }
+
 
 # fabric.colors doesn't have bold, so just define styles here
 def bold(msg):
@@ -41,6 +46,7 @@ def blue(msg):
 def teal(msg):
     return '\033[1;36m%s\033[0m' % msg
 
+
 def split_package(package):
     """Split a package into the name and version components."""
     name = package
@@ -55,21 +61,28 @@ def split_package(package):
                 version = v
     return name, version
 
+
 class cd_local(object):
     """Changes the local current working directory."""
+
     def __init__(self, nwd):
         self.cwd = os.getcwd()
         self.nwd = nwd
+
     def __enter__(self):
         os.chdir(self.nwd)
+
     def __exit__(self, *_):
         os.chdir(self.cwd)
+
 
 def get_template_directory():
     return '%s/templates' % os.path.dirname(__file__)
 
+
 def get_template(name):
     return os.path.join(get_template_directory(), name)
+
 
 def chown(paths, username='root', group='root'):
     """Change the owner and group of a path or multiple paths. The return value from put() or upload_template() can be wrapped in this directly."""
@@ -80,6 +93,7 @@ def chown(paths, username='root', group='root'):
     for path in paths:
         sudo('chown -R %s:%s %s' % (username, group, path))
 
+
 def compare_files(local_path, remote_path):
     with hide('everything'), settings(warn_only=True):
         local_result = local('cksum ' + local_path, capture=True)
@@ -89,6 +103,7 @@ def compare_files(local_path, remote_path):
             # compare only the first two because path could be different
             return local_result[:local_result.rfind(' ')] == remote_result[:remote_result.rfind(' ')]
     return False
+
 
 def find_static(site, name):
     """Finds a static file in a Django project with appname/static and STATICFILES_DIRS without resorting to importing the Django finder."""
@@ -115,11 +130,13 @@ def find_static(site, name):
             return path
     return None
 
+
 def fix_absolute_path(path):
     """If settings spill over from development for a path inside the project then translate it to the project directory on the server."""
     if path.startswith(os.path.abspath('.')):
         return path.replace(os.path.abspath('.'), get_project_directory(), 1)
     return path
+
 
 def get_webapp_taskrunner(webapp_root):
     if webapp_root.endswith('/'):
@@ -135,7 +152,9 @@ def get_webapp_taskrunner(webapp_root):
         task_runner = 'jekyll'
     return parent, task_runner
 
+
 _build_webapp_set = set()
+
 
 def build_webapp(webapp_root, task=None):
     """Build a web app. Assumes that the webapp_root is a build subdirectory to a parent project with a build file."""
@@ -180,7 +199,9 @@ def build_webapp(webapp_root, task=None):
         print bold('Building %s ...' % parent)
         webapp_cmd('%s %s' % (task_runner, task))
 
+
 _apt_get_install_set = set()
+
 
 def apt_get_install(*packages):
     for package in packages:
@@ -198,6 +219,7 @@ def apt_get_install(*packages):
         else:
             print '%s already installed.' % package
 
+
 def apt_get_update():
     # Don't update apt-get if not older than a day
     with hide('everything'), settings(warn_only=True):
@@ -207,14 +229,18 @@ def apt_get_update():
             return
     sudo('apt-get update -y')
 
+
 def apt_get_upgrade_packages():
     sudo('apt-get upgrade -y')
+
 
 def get_project_directory():
     return os.path.join('/srv/www/apps', env['project'])
 
+
 def get_manage_directory():
     return os.path.join('/srv/www/manage', env['project'])
+
 
 def get_requirements_packages():
     try:
@@ -224,12 +250,14 @@ def get_requirements_packages():
     except:
         return tuple()
 
+
 def get_django_setting(site, setting):
     try:
         module = import_module(site['settings_module'])
         return getattr(module, setting)
     except:
         return None
+
 
 def get_static_root(site):
     """Get the STATIC_ROOT for a Django site. If not set and STATIC_ROOT is the default None then set to a production default."""
@@ -239,12 +267,14 @@ def get_static_root(site):
         return os.path.join('/srv/www/static', site['name'])
     return fix_absolute_path(static_root)
 
+
 def get_media_root(site):
     """Get the MEDIA_ROOT for a Django site. If not set and MEDIA_ROOT is the default '' then set to a production default."""
     media_root = get_django_setting(site, 'MEDIA_ROOT')
     if not media_root:
         return os.path.join('/srv/www/media', site['name'])
     return fix_absolute_path(media_root)
+
 
 def get_webapp_root(site):
     """Get the WEBAPP_ROOT but do not provide a production default if not set."""
@@ -253,16 +283,20 @@ def get_webapp_root(site):
         webapp_root = fix_absolute_path(webapp_root)
     return webapp_root
 
+
 def get_static_url(site):
     """Get the STATIC_URL for a Django site. If not set and STATIC_URL is the default None then set to a production default."""
     return get_django_setting(site, 'STATIC_URL') or '/static/'
+
 
 def get_media_url(site):
     """Get the MEDIA_URL for a Django site. If not set and MEDIA_URL is the default '' then set to a production default."""
     return get_django_setting(site, 'MEDIA_URL') or '/media/'
 
+
 def get_webapp_url(site):
     return get_django_setting(site, 'WEBAPP_URL') or '/'
+
 
 def get_virtual_env(site=None):
     # If virtualenv is available, then setup and use it
@@ -273,12 +307,14 @@ def get_virtual_env(site=None):
                 sudo('virtualenv ' + virtual_env)
             return virtual_env
 
+
 def get_python_interpreter(site=None):
     virtual_env = get_virtual_env(site)
     if virtual_env:
         return os.path.join(virtual_env, 'bin/python')
     else:
         return 'python'
+
 
 def get_pip_installer(site=None):
     virtual_env = get_virtual_env(site)
@@ -291,7 +327,9 @@ def get_pip_installer(site=None):
             else:
                 return 'easy_install'
 
+
 _pip_install_set = set()
+
 
 def pip_install(site=None, *packages):
     # TODO: support upgrading packages with pip install --upgrade packagename
@@ -317,6 +355,7 @@ def pip_install(site=None, *packages):
             # sudo with -H for setting the home directory for root so pip has proper permissions to cache
             run('sudo -H %s install "%s"' % (pip, package))
 
+
 def pip_check_install(package, site=None):
     pip = get_pip_installer(site)
     name, version = split_package(package)
@@ -325,11 +364,13 @@ def pip_check_install(package, site=None):
     # Check the output of pip show, it might not return non-zero on not finding the package, just no output
     return not (result.failed or not len(result.strip()))
 
+
 def pip_update():
     # WARNING: Upgrading pip to the latest version will cause urllib3 warnings and errors to start occuring on Ubuntu 14
     # virtualenv uses the latest versions and will cause these warnings, but they are consumed in CompactStdout
     sudo('pip install --upgrade pip')
     sudo('pip install --upgrade distribute')
+
 
 def set_environment(e):
     # Copy the environment name into each environments, even though only one is being used
@@ -358,12 +399,14 @@ def set_environment(e):
         if not env['sites'][name].has_key('type'):
             env['sites'][name]['type'] = SiteType.DJANGO
 
+
 def set_default_environment(e):
     for arg in sys.argv:
         if arg.startswith('e:'):
             return
     set_environment(environments[e])
     env['default'] = True
+
 
 def find_service(name):
     for service in env['services']:

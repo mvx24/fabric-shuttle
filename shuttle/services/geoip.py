@@ -1,14 +1,16 @@
 from fabric.api import cd, sudo
 from fabric.contrib.files import exists
 
-from .service import Service
-from ..hooks import hook
-from ..shared import apt_get_install, pip_install, SiteType
+from shuttle.services.service import Service
+from shuttle.hooks import hook
+from shuttle.shared import apt_get_install, pip_install, SiteType
+
 
 # http://dev.maxmind.com/geoip/legacy/geolite/
 _CITY_PACKAGE_URL = 'http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz'
 _COUNTRY_PACKAGE_URL = 'http://geolite.maxmind.com/download/geoip/database/GeoLiteCountry/GeoIP.dat.gz'
 _INSTALL_DIR = '/opt/geoip'
+
 
 class GeoIP(Service):
     """Database to convert ip addresses into locations."""

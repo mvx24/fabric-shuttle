@@ -3,14 +3,16 @@ import os
 
 from fabric.api import put, run, sudo, settings, env, local
 
-from .hooks import hook
-from .services.s3 import S3, get_aws_access_key
-from .shared import *
+from shuttle.hooks import hook
+from shuttle.services.s3 import S3, get_aws_access_key
+from shuttle.shared import *
+
 
 def reboot():
     """Reboot the server."""
     with hook('reboot'):
         sudo('shutdown -r now')
+
 
 def install_key(key=None):
     """Copy an ssh key to login later."""
@@ -20,6 +22,7 @@ def install_key(key=None):
             put('~/.ssh/id_rsa.pub', '.ssh/authorized_keys')
         else:
             put('~/.ssh/%s' % key, '.ssh/authorized_keys')
+
 
 def generate_s3_ajax(module_name=''):
     """Generate jquery ajax code for saving files with the S3 policy documents. A site must be specified."""
@@ -78,7 +81,9 @@ def generate_s3_ajax(module_name=''):
         context['policies'].append(policy)
     print template.render(Context(context, autoescape=False))
 
+
 _webapp_process = None
+
 
 def _signal_handler(sig, frame):
     import signal, sys
@@ -86,6 +91,7 @@ def _signal_handler(sig, frame):
     if _webapp_process:
         _webapp_process.kill()
     sys.exit(0)
+
 
 def run_webapp():
     """Run a webapp. Serve up a stand-alone webapp site on port 8000. Assumes that the webapp_root is a build subdirectory to a parent project with a build file."""
@@ -110,7 +116,9 @@ def run_webapp():
         task = site['webapp'].get('run_task', 'runwebapp')
         _webapp_process = subprocess.Popen([task_runner, task])
         os.chdir(cwd)
+
     class WebAppRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler, object):
+
         def do_GET(self):
             # Strip any query arguments
             self.path = self.path.split('?')[0]
@@ -135,17 +143,21 @@ def run_webapp():
             # Rewrite to the webapp root
             self.path = '/' + site['webapp']['root'].strip('/') + self.path
             return super(WebAppRequestHandler, self).do_GET()
+
     httpd = BaseHTTPServer.HTTPServer(('', 8000), WebAppRequestHandler)
     print "Serving on port %d" % 8000
     httpd.serve_forever()
+
 
 def uname():
     """Print the remote uname."""
     run('uname -a')
 
+
 def ntp():
     """Sync the time on the host using network time."""
     sudo('ntpdate pool.ntp.org')
+
 
 def exports():
     """Prints commands to export AWS environment variables. Example use: eval `fab --hide running,status e:production x:exports`"""
@@ -162,17 +174,21 @@ def exports():
         print 'export AWS_ACCESS_KEY_ID=%s' % aws_access_key_id
         print 'export AWS_SECRET_ACCESS_KEY=%s' % aws_secret_access_key
 
+
 # Archive functions
+
 
 def __git_archive():
     """Creates a git archive with all submodules included. Uses gnutar so the archive is compatible on linux."""
     project = env.get('project', 'project')
     local("git archive HEAD -o %s.tar; git submodule foreach 'git archive --prefix ${path}/ HEAD -o ../temp.tar; gnutar -Af ../%s.tar ../temp.tar; rm ../temp.tar'; gzip -f %s.tar" % (project, project, project))
 
+
 def __git_raw_archive():
     """Creates an archive of files not based on the git repository. For testing uncommitted code."""
     project = env.get('project', 'project')
     local("gnutar -cf %s.tar .; gzip -f %s.tar" % (project, project))
+
 
 def archive(raw=False):
     """Creates a git archive with all submodules included. Uses gnutar so the archive is compatible on linux. Optional argument: true for a raw archive."""
@@ -181,10 +197,12 @@ def archive(raw=False):
     else:
         __git_archive()
 
+
 _MYSQL_CLIENT_INSTRUCTIONS = """1. Download the connector from: http://dev.mysql.com/downloads/connector/c/
 2. Install the connector into /usr/local/
 3. Add the correct /usr/local/mysql-connector-c-<your version here>/bin directory to PATH
 4. Add the correct /usr/local/mysql-connector-c-<your version here>/lib directory to DYLD_LIBRARY_PATH"""
+
 
 _MYSQL_PYTHON_INSTRUCTIONS = """1. Download MySQL-python from: https://pypi.python.org/pypi/MySQL-python
 2. export CFLAGS=-Wunused-command-line-argument-hard-error-in-future
@@ -192,12 +210,14 @@ _MYSQL_PYTHON_INSTRUCTIONS = """1. Download MySQL-python from: https://pypi.pyth
 4. sudo python setup.py install
 """
 
+
 _PYCRYPTO_INSTRUCTIONS = """1. Download pycrypto from: https://www.dlitz.net/software/pycrypto/
 2. export CFLAGS=-Wunused-command-line-argument-hard-error-in-future
 3. ./configure
 4. python setup.py build
 5. sudo python setup.py install
 """
+
 
 def local_setup():
     """Installs packages necessary for a local mac setup."""

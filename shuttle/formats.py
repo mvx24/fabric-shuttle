@@ -1,5 +1,6 @@
 import StringIO
 
+
 def format_ini(values, quotes=True):
     output = StringIO.StringIO()
     for section in values:

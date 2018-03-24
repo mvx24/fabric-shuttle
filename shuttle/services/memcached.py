@@ -2,14 +2,22 @@ import tempfile
 
 from fabric.api import put, sudo
 
-from .service import Service
-from ..hooks import hook
-from ..shared import apt_get_install, pip_install, chown
+from shuttle.services.service import Service
+from shuttle.hooks import hook
+from shuttle.shared import apt_get_install, pip_install, chown
+
 
 class Memcached(Service):
     name = 'memcached'
     script = 'memcached'
-    DEFAULT_SETTINGS = {'-d': None, 'logfile': '/var/log/memcached.log', '-m': '64', '-p': '11211', '-u': 'memcache', '-l': '127.0.0.1'}
+    DEFAULT_SETTINGS = {
+        '-d': None,
+        'logfile': '/var/log/memcached.log',
+        '-m': '64',
+        '-p': '11211',
+        '-u': 'memcache',
+        '-l': '127.0.0.1',
+    }
 
     def install(self):
         with hook('install %s' % self.name, self):

@@ -3,9 +3,10 @@ import tempfile, os
 from fabric.api import env, sudo, settings
 from fabric.contrib.files import upload_template
 
-from .service import Service
-from ..hooks import hook
-from ..shared import apt_get_install, get_template, get_project_directory, get_virtual_env
+from shuttle.services.service import Service
+from shuttle.hooks import hook
+from shuttle.shared import apt_get_install, get_template, get_project_directory, get_virtual_env
+
 
 class UWSGI(Service):
     name = 'uwsgi'

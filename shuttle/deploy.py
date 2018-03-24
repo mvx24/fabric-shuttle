@@ -5,17 +5,22 @@ import subprocess
 from fabric.api import sudo, local, put, settings
 from fabric.contrib.files import append, upload_template
 
-from .services.s3 import upload_to_s3, delete_from_s3
-from .shared import *
+from shuttle.services.s3 import upload_to_s3, delete_from_s3
+from shuttle.shared import *
+
 
 class own_project(object):
     """Changes the permissions of the project between the ssh user and nginx user."""
+
     def __init__(self):
         pass
+
     def __enter__(self):
         chown(get_project_directory(), env['user'], env['user'])
+
     def __exit__(self, *_):
         chown(get_project_directory(), WWW_USER, WWW_USER)
+
 
 def _get_remote_shell():
     parts = ['ssh', '-p', env.get('port', '22')]
@@ -28,6 +33,7 @@ def _get_remote_shell():
         parts.append('-o')
         parts.append('StrictHostKeyChecking=no')
     return ' '.join(parts)
+
 
 def _django_get_excluded(sites):
     """Get an excluded list of patterns.
@@ -67,7 +73,9 @@ def _django_get_excluded(sites):
                 print red('Warning: Could not import webapp settings for %s when syncing.' % site['name'])
     return excluded
 
+
 SYNC_COMMAND = 'rsync -avz %s --delete --delete-excluded%s ./ %s@%s:%s'
+
 
 def django_sync(sites):
     """Syncs the local code to the server. Used as part of the deploy process. Wrap in the task decorator to enable. sync = task(sync)"""
@@ -118,12 +126,14 @@ def django_sync(sites):
             context = {'project_dir': project_dir, 'settings_module': site['settings_module'], 'interpreter': get_python_interpreter(site)}
             chown(upload_template(get_template('manage.py'), os.path.join(manage_dir, site['name'] + '.py'), context=context, backup=False, use_sudo=True, mode=0755), WWW_USER, WWW_USER)
 
+
 def django_sync_dry_run(sites):
     """Do an rsync dry run to see which files will be updated when deploying."""
     # e.g. To show just migrations: fab e:production x:dryrun | grep -v "^deleting" | grep -v "/$" | grep "^shared/migrations"
     excluded = _django_get_excluded(sites)
     excluded = ['--exclude="%s"' % ex for ex in excluded]
     local(SYNC_COMMAND % (' '.join(excluded), ' --dry-run -e "%s"' % _get_remote_shell(), env['user'], env['hosts'][0], get_project_directory()))
+
 
 def django_sync_down(path=''):
     """Syncs down stuff from the server. Wrap in the task decorator to enable. sync_down = task(sync_down)"""
@@ -133,6 +143,7 @@ def django_sync_down(path=''):
         path += '/'
     remote_path = os.path.join(get_project_directory(), path)
     local('rsync -avz --exclude=".*" --exclude="*.pyc" --exclude="*.sh" --exclude="*.db" -e "%s" %s@%s:%s ./%s' % (_get_remote_shell(), env['user'], env['hosts'][0], remote_path, path))
+
 
 def django_append_settings(site):
     """Update Django settings with production ready values, possibly not set explicitly in the settings."""
@@ -159,6 +170,7 @@ def django_append_settings(site):
         if site_settings:
             txt += '\n' + '\n'.join(["%s = '%s'" % item for item in site_settings.items()]) + '\n'
     append(filename, txt.replace('\t', ''), use_sudo=True)
+
 
 def deploy_webapp():
     """Deploy a webapp to S3 with the prefix of WEBAPP_URL. If site is not specified, then the command will be run on all sites."""

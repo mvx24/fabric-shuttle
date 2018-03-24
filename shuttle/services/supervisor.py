@@ -3,12 +3,21 @@ import tempfile
 from fabric.api import put, sudo
 from fabric.contrib.files import append, sed, exists
 
-from .service import Service
-from ..formats import format_ini
-from ..hooks import hook
-from ..shared import WWW_USER, pip_install, get_template, get_project_directory, get_python_interpreter, chown
+from shuttle.services.service import Service
+from shuttle.formats import format_ini
+from shuttle.hooks import hook
+from shuttle.shared import (
+    WWW_USER,
+    pip_install,
+    get_template,
+    get_project_directory,
+    get_python_interpreter,
+    chown,
+)
+
 
 _CONFIG_FILE = '/etc/supervisor/supervisor.conf'
+
 
 django_management_program = {
     'numprocs': '4',
@@ -18,7 +27,9 @@ django_management_program = {
     'user': WWW_USER
 }
 
+
 # NOTE: supervisor doesn't support quotes around the ini values in config files
+
 
 class Supervisor(Service):
     name = 'supervisor'

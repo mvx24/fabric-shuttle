@@ -2,8 +2,9 @@ from importlib import import_module
 import os
 
 from service import Service
-from ..hooks import hook
-from ..shared import bold, red
+from shuttle.hooks import hook
+from shuttle.shared import bold, red
+
 
 def get_aws_access_key(site):
     if site.has_key('webapp') and site['webapp'].get('aws_access_key_id') and site['webapp'].get('aws_secret_access_key'):
@@ -16,14 +17,19 @@ def get_aws_access_key(site):
             print red('Error: Could not access AWS_ACCESS_KEY_ID or AWS_SECRET_ACCESS_KEY from settings.')
             exit(1)
 
+
 def setup_aws_access_key(site):
     # Boto variables
     aws_access_key_id, aws_secret_access_key = get_aws_access_key(site)
     os.environ.setdefault('AWS_ACCESS_KEY_ID', aws_access_key_id)
     os.environ.setdefault('AWS_SECRET_ACCESS_KEY', aws_secret_access_key)
 
+
 def upload_to_s3(site, bucket, directory=None, files=None, prefix=None):
-    """Uploads files to an s3 bucket. Upload either an entire directory with files=None, or specific files with and optional directory prefix."""
+    """
+    Uploads files to an s3 bucket.
+    Upload either an entire directory with files=None, or specific files with and optional directory prefix.
+    """
     if bucket is None:
         print red('Error: Bucket must be specified.')
         return
@@ -105,6 +111,7 @@ def upload_to_s3(site, bucket, directory=None, files=None, prefix=None):
                     __upload(key, filename)
         os.path.walk(directory, __upload_dir, directory)
 
+
 def delete_from_s3(site, bucket, prefix=None):
     """ Remove all files with the prefix specified from the bucket. """
     if bucket is None:
@@ -127,6 +134,7 @@ def delete_from_s3(site, bucket, prefix=None):
     result_set = b.list(prefix=prefix)
     result = b.delete_keys([key.name for key in result_set])
 
+
 def create_public_bucket_policy(bucket_name):
     import json
     policy = {
@@ -145,7 +153,9 @@ def create_public_bucket_policy(bucket_name):
     }
     return json.dumps(policy)
 
+
 DEFAULT_CORS_RULE = {'allowed_method': ['GET'], 'allowed_origin': ['*'], 'allowed_header': ['Authorization'], 'max_age_seconds': 3000}
+
 
 class S3(Service):
     name = 's3'

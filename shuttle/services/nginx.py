@@ -5,26 +5,46 @@ import urlparse
 from fabric.api import put, sudo, hide, settings, env
 from fabric.contrib.files import upload_template
 
-from .service import Service
-from ..shared import apt_get_install, get_template, fix_absolute_path, SiteType, chown, find_static
-from ..shared import get_django_setting, get_static_root, get_static_url, get_media_root, get_media_url, get_webapp_root, get_webapp_url
-from ..hooks import hook
+from shuttle.services.service import Service
+from shuttle.shared import (
+    apt_get_install,
+    get_template,
+    fix_absolute_path,
+    SiteType,
+    chown,
+    find_static,
+)
+from shuttle.shared import (
+    get_django_setting,
+    get_static_root,
+    get_static_url,
+    get_media_root,
+    get_media_url,
+    get_webapp_root,
+    get_webapp_url,
+)
+from shuttle.hooks import hook
+
 
 _NGINX_SSL = """listen 443 ssl;\n\tssl_certificate %s;\n\tssl_certificate_key %s;"""
 _NGINX_LOCATION = """location %s {\n\t\talias %s;\n\t\texpires 1d;\n\t}"""
 _NGINX_LOCATION_DOMAIN = """location %s {\n\t\trewrite ^(.*)$ http://%s$1 permanent;\n\t}"""
 _NGINX_WEBAPP_LOCATION = """location %s {\n\t\talias %s;\n\t\ttry_files $uri $uri/%s %s;\n\t}"""
 
+
 def _get_domain(url):
     return urlparse.urlparse(url).netloc
 
+
 def _get_path(url):
     return urlparse.urlparse(url).path
+
 
 def _slash_append(path):
     if not path.endswith('/'):
         return path + '/'
     return path
+
 
 def _slash_wrap(path):
     if path.startswith('/'):
@@ -37,6 +57,7 @@ def _slash_wrap(path):
             return '/' + path
         else:
             return '/%s/' % path
+
 
 class Nginx(Service):
     name = 'nginx'
